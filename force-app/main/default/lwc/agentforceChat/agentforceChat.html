@@ -1,0 +1,130 @@
+<template>
+    <section class="agentforce-chat slds-card">
+        <template lwc:if={showHeader}>
+            <header class="agentforce-chat__header slds-card__header slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
+                <h2 class="slds-text-heading_small">{title}</h2>
+            </header>
+        </template>
+
+        <div class="agentforce-chat__messages slds-card__body slds-card__body_inner">
+            <template lwc:if={hasMessages}>
+                <template for:each={normalizedMessages} for:item="message">
+                    <article
+                        key={message.id}
+                        class="agentforce-chat__message slds-media"
+                        data-role={message.role}
+                    >
+                        <template lwc:if={showAvatar}>
+                            <div class="slds-media__figure">
+                                <span class="agentforce-chat__avatar" title={message.role}>
+                                    <template lwc:if={message.isUser}>👤</template>
+                                    <template lwc:if={message.isAssistant}>🤖</template>
+                                    <template lwc:if={message.isSystem}>⚙️</template>
+                                </span>
+                            </div>
+                        </template>
+
+                        <div class="slds-media__body">
+                            <div class="agentforce-chat__bubble">
+                                <lightning-formatted-rich-text
+                                    value={message.renderedContent}
+                                ></lightning-formatted-rich-text>
+                            </div>
+
+                            <div class="agentforce-chat__meta">
+                                <lightning-formatted-date-time
+                                    value={message.timestamp}
+                                    year="numeric"
+                                    month="short"
+                                    day="2-digit"
+                                    hour="2-digit"
+                                    minute="2-digit"
+                                ></lightning-formatted-date-time>
+
+                                <template lwc:if={message.isAssistant}>
+                                    <lightning-button-icon
+                                        icon-name="utility:copy"
+                                        alternative-text="Copy message"
+                                        title="Copy message"
+                                        data-id={message.id}
+                                        onclick={handleCopyMessage}
+                                        variant="bare"
+                                        size="x-small"
+                                    ></lightning-button-icon>
+                                </template>
+                            </div>
+
+                            <template lwc:if={message.hasCitations}>
+                                <ol class="agentforce-chat__citations">
+                                    <template for:each={message.citations} for:item="citation">
+                                        <li key={citation.id}>
+                                            <a href={citation.url} target="_blank" rel="noopener noreferrer">
+                                                {citation.title}
+                                            </a>
+                                        </li>
+                                    </template>
+                                </ol>
+                            </template>
+                        </div>
+                    </article>
+                </template>
+            </template>
+
+            <template lwc:if={isWaiting}>
+                <div class="agentforce-chat__typing slds-p-vertical_small">
+                    <lightning-spinner alternative-text="Assistant is thinking" size="small"></lightning-spinner>
+                    <span class="slds-m-left_small">Assistant is thinking...</span>
+                </div>
+            </template>
+        </div>
+
+        <template lwc:if={showSuggestions}>
+            <div class="agentforce-chat__suggestions slds-p-horizontal_medium slds-p-bottom_small">
+                <p class="slds-text-title_caps slds-m-bottom_x-small">Suggested prompts</p>
+                <div class="agentforce-chat__suggestion-list">
+                    <template for:each={suggestions} for:item="suggestion">
+                        <button
+                            key={suggestion}
+                            class="slds-button slds-button_neutral slds-m-right_x-small slds-m-bottom_x-small"
+                            data-value={suggestion}
+                            onclick={handleSuggestionClick}
+                            disabled={disabled}
+                        >
+                            {suggestion}
+                        </button>
+                    </template>
+                </div>
+            </div>
+        </template>
+
+        <footer class="agentforce-chat__composer slds-p-around_medium slds-border_top">
+            <lightning-textarea
+                value={draftMessage}
+                placeholder={placeholder}
+                disabled={disabled}
+                onchange={handleInput}
+                onkeydown={handleKeydown}
+                variant="label-hidden"
+                max-length="4000"
+            ></lightning-textarea>
+
+            <div class="agentforce-chat__actions slds-m-top_small slds-grid slds-grid_align-end">
+                <template lwc:if={canRetry}>
+                    <lightning-button
+                        class="slds-m-right_small"
+                        label="Retry"
+                        onclick={handleRetryClick}
+                        disabled={disabled}
+                        variant="neutral"
+                    ></lightning-button>
+                </template>
+                <lightning-button
+                    label="Send"
+                    onclick={handleSendClick}
+                    disabled={disabled}
+                    variant="brand"
+                ></lightning-button>
+            </div>
+        </footer>
+    </section>
+</template>
