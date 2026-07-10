@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <classAccesses>
+        <apexClass>AgentforceService</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <description>Grants access to the Agentforce Classic Visualforce tab and backend Apex service.</description>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>Agentforce Chat Access</label>
+    <tabSettings>
+        <tab>AgentforceClassic</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+    <pageAccesses>
+        <apexPage>AgentforceClassic</apexPage>
+        <enabled>true</enabled>
+    </pageAccesses>
+</PermissionSet>

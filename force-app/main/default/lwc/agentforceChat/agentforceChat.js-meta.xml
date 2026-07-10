@@ -21,6 +21,12 @@
                 label="Sample Prompts"
                 description="Use newline, semicolon, or pipe separators."
             />
+            <property
+                name="skillsJson"
+                type="String"
+                label="Skills JSON"
+                description="Optional JSON array with label and content__c fields for @ mention resolution."
+            />
             <property name="showHeader" type="Boolean" label="Show Header" default="true"/>
             <property name="showAvatar" type="Boolean" label="Show Avatars" default="true"/>
             <property name="maxHistory" type="Integer" label="Max History" default="30"/>

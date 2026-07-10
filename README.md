@@ -42,6 +42,12 @@ The current component implementation supports:
   - `suggestions` array input.
   - `samplePrompts` string input (newline/semicolon/pipe parsing).
   - Record page context support via `recordId`.
+  - `@skill` mentions resolved from custom metadata (`Coworker_Skill__mdt`) via `CoworkerSkillsController`.
+
+- **Skills custom metadata integration**
+  - Skills loaded from `Coworker_Skill__mdt` using `CoworkerSkillsController.getSkills()`.
+  - Uses `MasterLabel` as mention label and `Content__c` as resolved prompt content.
+  - Supports multi-word skill labels and `@` autocomplete in the composer.
 
 - **Rendering**
   - Plain text mode using `lightning-formatted-text` with `linkify`.
@@ -58,7 +64,54 @@ The current component implementation supports:
 - LWC bundle: `force-app/main/default/lwc/agentforceChat`
 - Apex service: `force-app/main/default/classes/AgentforceService.cls`
 - Apex test: `force-app/main/default/classes/AgentforceServiceTest.cls`
+- Skills controller: `force-app/main/default/classes/CoworkerSkillsController.cls`
+- Skills metadata type: `Coworker_Skill__mdt`
 - LWC Jest test: `force-app/main/default/lwc/agentforceChat/__tests__/agentforceChat.test.js`
+
+## Skills via Custom Metadata (`@mentions`)
+
+The chat supports skill mentions in user messages, for example:
+
+- `@Analyse mon portefeuille client`
+
+When a message is sent:
+
+1. The component loads skills from Apex (`CoworkerSkillsController.getSkills`).
+2. It matches `@label` in the user message against skill labels (`MasterLabel`).
+3. It replaces each matched mention with the skill body (`Content__c`) before calling `AgentforceService`.
+
+### Metadata requirements
+
+Skills are read from custom metadata records of type `Coworker_Skill__mdt`.
+
+Minimum required fields per record:
+
+- `MasterLabel` (used as the `@label` mention text)
+- `Content__c` (resolved text inserted into the prompt sent to the agent)
+
+Optional fields (not required by resolution logic, but may be useful operationally):
+
+- `Category__c`
+- `Expected_Result__c`
+- `Agents__c`
+- `DeveloperName`
+
+### UX behavior
+
+- Type `@` in the composer to open skill autocomplete.
+- Multi-word labels are supported.
+- For user messages with resolved skills:
+  - the `@mention` is visually emphasized in the chat bubble,
+  - a bold `Resolved` status is shown in message meta,
+  - hovering `Resolved` shows tooltip content,
+  - clicking `Resolved` opens a modal with full resolved prompt text.
+
+### Fallback behavior
+
+If Apex skill loading is unavailable, the component can still parse optional `skillsJson` (if provided) using:
+
+- `label`
+- `content__c`
 
 ## Current Agentforce Invocation Shape
 
@@ -181,6 +234,7 @@ sf apex run test \
 4. Configure at minimum:
    - `agentApiName` (for example `CRM_Assistant`)
    - optional `samplePrompts`
+   - optional `skillsJson` (only as fallback / small local config)
    - optional `showHeader`, `showAvatar`, `maxHistory`
 
 ### One-command deploy (recommended)
@@ -222,6 +276,26 @@ Example:
 
 ```bash
 sf apex run --target-org "<org-username-or-alias>" --file "scripts/verifyAgentforceService.apex" --json
+```
+
+## Salesforce Classic Support (Visualforce Host)
+
+The repo includes a Lightning Out bridge to render the chat component in Salesforce Classic:
+
+- Aura host component: `force-app/main/default/aura/AgentforceChatHost`
+- Lightning Out app: `force-app/main/default/aura/AgentforceClassicOutApp`
+- Visualforce page: `force-app/main/default/pages/AgentforceClassic.page`
+
+Open the page in Classic with a record id:
+
+```text
+/apex/AgentforceClassic?id=<RECORD_ID>
+```
+
+Example:
+
+```text
+/apex/AgentforceClassic?id=001XXXXXXXXXXXXXXX
 ```
 
 ## Contributing

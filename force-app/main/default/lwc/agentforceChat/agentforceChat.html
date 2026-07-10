@@ -65,7 +65,6 @@
                                     ></lightning-formatted-rich-text>
                                 </template>
                             </div>
-
                             <div class="agentforce-chat__meta">
                                 <lightning-formatted-date-time
                                     value={message.timestamp}
@@ -86,6 +85,17 @@
                                         variant="bare"
                                         size="x-small"
                                     ></lightning-button-icon>
+                                </template>
+                                <template lwc:if={message.hasResolvedContent}>
+                                    <button
+                                        class="agentforce-chat__resolved-status slds-button slds-button_reset"
+                                        type="button"
+                                        title={message.resolvedContent}
+                                        data-id={message.id}
+                                        onclick={handleResolvedPreviewClick}
+                                    >
+                                        Resolved
+                                    </button>
                                 </template>
                             </div>
 
@@ -137,11 +147,49 @@
                 value={draftMessage}
                 placeholder={placeholder}
                 disabled={disabled}
+                oninput={handleInput}
                 onchange={handleInput}
                 onkeydown={handleKeydown}
                 variant="label-hidden"
                 max-length="4000"
             ></lightning-textarea>
+            <template lwc:if={showCommandAutocomplete}>
+                <div class="agentforce-chat__command-autocomplete slds-m-top_x-small" role="listbox">
+                    <template for:each={commandSuggestions} for:item="item">
+                        <button
+                            key={item.id}
+                            class="agentforce-chat__command-item slds-button slds-button_reset"
+                            type="button"
+                            data-command={item.command}
+                            aria-selected={item.isActive}
+                            onclick={handleCommandSuggestionClick}
+                        >
+                            <span class="agentforce-chat__command-name">{item.command}</span>
+                            <span class="agentforce-chat__command-description">{item.description}</span>
+                        </button>
+                    </template>
+                </div>
+            </template>
+            <template lwc:if={showSkillAutocomplete}>
+                <div class="agentforce-chat__command-autocomplete slds-m-top_x-small" role="listbox">
+                    <template for:each={mentionSuggestions} for:item="item">
+                        <button
+                            key={item.id}
+                            class="agentforce-chat__command-item slds-button slds-button_reset"
+                            type="button"
+                            data-label={item.label}
+                            aria-selected={item.isActive}
+                            onclick={handleSkillSuggestionClick}
+                        >
+                            <span class="agentforce-chat__command-name">{item.mention}</span>
+                            <span class="agentforce-chat__command-description">{item.description}</span>
+                        </button>
+                    </template>
+                </div>
+            </template>
+            <p class="agentforce-chat__command-hint slds-text-body_small slds-m-top_x-small">
+                {commandHintText}
+            </p>
 
             <div class="agentforce-chat__actions slds-m-top_small slds-grid slds-grid_align-end">
                 <template lwc:if={canRetry}>
@@ -161,5 +209,32 @@
                 ></lightning-button>
             </div>
         </footer>
+
+        <template lwc:if={resolvedPreviewOpen}>
+            <section
+                role="dialog"
+                tabindex="-1"
+                aria-modal="true"
+                aria-label={resolvedPreviewTitle}
+                class="slds-modal slds-fade-in-open"
+            >
+                <div class="slds-modal__container">
+                    <header class="slds-modal__header">
+                        <h2 class="slds-modal__title slds-hyphenate">{resolvedPreviewTitle}</h2>
+                    </header>
+                    <div class="slds-modal__content slds-p-around_medium">
+                        <lightning-formatted-text value={resolvedPreviewText}></lightning-formatted-text>
+                    </div>
+                    <footer class="slds-modal__footer">
+                        <lightning-button
+                            label="Close"
+                            variant="brand"
+                            onclick={closeResolvedPreview}
+                        ></lightning-button>
+                    </footer>
+                </div>
+            </section>
+            <div class="slds-backdrop slds-backdrop_open"></div>
+        </template>
     </section>
 </template>

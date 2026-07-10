@@ -1,5 +1,6 @@
 import { LightningElement, api, track } from 'lwc';
 import sendAgentMessage from '@salesforce/apex/AgentforceService.sendMessage';
+import getCoworkerSkills from '@salesforce/apex/CoworkerSkillsController.getSkills';
 
 const STATE = Object.freeze({
     IDLE: 'idle',
@@ -13,6 +14,16 @@ const STORAGE_PREFIX = 'agentforce-chat-session';
 const HISTORY_STORAGE_PREFIX = 'agentforce-chat-history';
 const HISTORY_INDEX_SUFFIX = 'index';
 const ACTIVE_CONVERSATION_SUFFIX = 'active';
+const COMMANDS = Object.freeze([
+    { name: 'help', description: 'Show available commands' },
+    { name: 'clear', description: 'Clear current conversation' },
+    { name: 'new', description: 'Start a new conversation' },
+    { name: 'retry', description: 'Retry the last failed message' },
+    { name: 'session', description: 'Show session and agent info' },
+    { name: 'context', description: 'Show active record context' },
+    { name: 'prompts', description: 'List configured prompts' },
+    { name: 'reset', description: 'Reset conversation and session' }
+]);
 
 export default class AgentforceChat extends LightningElement {
     @api recordId;
@@ -23,6 +34,7 @@ export default class AgentforceChat extends LightningElement {
     @api welcomeMessage = 'How can I help?';
     @api suggestions = [];
     @api samplePrompts = '';
+    @api skillsJson = '';
     @api showHeader = false;
     @api showAvatar = false;
     @api maxHistory = 30;
@@ -39,6 +51,12 @@ export default class AgentforceChat extends LightningElement {
     hasInteracted = false;
     lastFailedUserMessage = null;
     isConnected = false;
+    commandActiveIndex = 0;
+    skillActiveIndex = 0;
+    loadedSkills = [];
+    resolvedPreviewOpen = false;
+    resolvedPreviewText = '';
+    resolvedPreviewTitle = '';
     localSessionId;
     activeConversationId;
 
@@ -47,6 +65,7 @@ export default class AgentforceChat extends LightningElement {
         this.initializeSession();
         this.initializeHistory();
         this.initializeWelcomeMessage();
+        this.loadSkills();
     }
 
     renderedCallback() {
@@ -57,6 +76,12 @@ export default class AgentforceChat extends LightningElement {
     sendMessage(text, options = {}) {
         const trimmed = (text || '').trim();
         if (!trimmed || this.disabled || this.isBusy) {
+            return;
+        }
+        if (this.handleSlashCommand(trimmed)) {
+            if (options.focusInput !== false) {
+                this.focusInput();
+            }
             return;
         }
         this.hasInteracted = true;
@@ -176,6 +201,129 @@ export default class AgentforceChat extends LightningElement {
         return this.state === STATE.WAITING || this.state === STATE.RECEIVING;
     }
 
+    get commandHintText() {
+        return 'Type / for commands or @ for skills';
+    }
+
+    get configuredSkills() {
+        if (this.loadedSkills.length > 0) {
+            return this.loadedSkills;
+        }
+        if (!this.skillsJson || typeof this.skillsJson !== 'string') {
+            return [];
+        }
+        try {
+            const parsed = JSON.parse(this.skillsJson);
+            if (!Array.isArray(parsed)) {
+                return [];
+            }
+            return parsed
+                .map((skill) => ({
+                    label: (skill?.label || skill?.Label || '').trim(),
+                    content: (skill?.content__c || skill?.content || '').trim()
+                }))
+                .filter((skill) => skill.label && skill.content);
+        } catch {
+            return [];
+        }
+    }
+
+    async loadSkills() {
+        try {
+            const records = await getCoworkerSkills();
+            if (!Array.isArray(records)) {
+                return;
+            }
+            this.loadedSkills = records
+                .map((record) => ({
+                    label: (record?.MasterLabel || '').trim(),
+                    content: (record?.Content__c || '').trim()
+                }))
+                .filter((skill) => skill.label && skill.content);
+        } catch {
+            this.loadedSkills = [];
+        }
+    }
+
+    get commandQuery() {
+        if (!this.draftMessage || !this.draftMessage.startsWith('/')) {
+            return '';
+        }
+        const [rawCommand] = this.draftMessage.slice(1).split(/\s+/, 1);
+        return (rawCommand || '').toLowerCase();
+    }
+
+    get isCommandMode() {
+        return Boolean(this.draftMessage) && this.draftMessage.startsWith('/');
+    }
+
+    get commandSuggestions() {
+        if (!this.isCommandMode) {
+            return [];
+        }
+        const query = this.commandQuery;
+        const list = COMMANDS.filter((item) =>
+            item.name.toLowerCase().startsWith(query)
+        ).map((item, index) => ({
+            id: item.name,
+            command: `/${item.name}`,
+            description: item.description,
+            isActive: index === this.commandActiveIndex
+        }));
+        if (this.commandActiveIndex >= list.length) {
+            this.commandActiveIndex = list.length > 0 ? 0 : -1;
+        }
+        return list;
+    }
+
+    get showCommandAutocomplete() {
+        return this.isCommandMode && this.commandSuggestions.length > 0;
+    }
+
+    get mentionTokenInfo() {
+        if (!this.draftMessage) {
+            return null;
+        }
+        const match = this.draftMessage.match(/(^|\s)(@[^@\n\r]*)$/);
+        if (!match) {
+            return null;
+        }
+        const token = match[2];
+        const startIndex = this.draftMessage.lastIndexOf(token);
+        return {
+            token,
+            query: token.slice(1).trimStart().toLowerCase(),
+            startIndex
+        };
+    }
+
+    get mentionSuggestions() {
+        const info = this.mentionTokenInfo;
+        if (!info) {
+            return [];
+        }
+        const list = this.configuredSkills
+            .filter((skill) => skill.label.toLowerCase().startsWith(info.query))
+            .map((skill, index) => ({
+                id: `skill-${skill.label}`,
+                mention: `@${skill.label}`,
+                label: skill.label,
+                description:
+                    skill.content.length > 80
+                        ? `${skill.content.slice(0, 80)}...`
+                        : skill.content,
+                isActive: index === this.skillActiveIndex
+            }));
+        if (this.skillActiveIndex >= list.length) {
+            this.skillActiveIndex = list.length > 0 ? 0 : -1;
+        }
+        return list;
+    }
+
+    get showSkillAutocomplete() {
+        return Boolean(this.mentionTokenInfo) && this.mentionSuggestions.length > 0;
+    }
+
     get normalizedMessages() {
         return this.messages.map((message, index) => ({
             ...message,
@@ -183,10 +331,25 @@ export default class AgentforceChat extends LightningElement {
             isUser: message.role === 'user',
             isAssistant: message.role === 'assistant',
             isSystem: message.role === 'system',
-            useLinkifyText: !this.markdownEnabled,
+            hasSkillMentions:
+                message.role === 'user' &&
+                Array.isArray(message.usedSkillLabels) &&
+                message.usedSkillLabels.length > 0,
+            useLinkifyText:
+                !this.markdownEnabled &&
+                !(
+                    message.role === 'user' &&
+                    Array.isArray(message.usedSkillLabels) &&
+                    message.usedSkillLabels.length > 0
+                ),
             renderedContent: this.markdownEnabled
                 ? this.renderMarkdown(message.content)
-                : this.escapeHtml(message.content),
+                : this.renderUserSkillMentions(message.content, message.usedSkillLabels),
+            hasResolvedContent:
+                message.role === 'user' &&
+                !!message.resolvedContent &&
+                message.resolvedContent !== message.content &&
+                message.resolvedContent.length > 0,
             hasCitations:
                 this.showCitations &&
                 message.citations &&
@@ -194,12 +357,98 @@ export default class AgentforceChat extends LightningElement {
         }));
     }
 
+    renderUserSkillMentions(content, usedSkillLabels) {
+        const escaped = this.escapeHtml(content);
+        if (!Array.isArray(usedSkillLabels) || usedSkillLabels.length === 0) {
+            return escaped;
+        }
+        let rendered = escaped;
+        usedSkillLabels
+            .filter((label) => !!label)
+            .sort((a, b) => b.length - a.length)
+            .forEach((label) => {
+                const escapedLabel = this.escapeRegExp(this.escapeHtml(label));
+                const pattern = new RegExp(`@${escapedLabel}`, 'gi');
+                rendered = rendered.replace(pattern, (match) => `<strong>${match}</strong>`);
+            });
+        return rendered;
+    }
+
     handleInput(event) {
         this.state = STATE.TYPING;
         this.draftMessage = event.target.value;
+        this.commandActiveIndex = 0;
+        this.skillActiveIndex = 0;
     }
 
     handleKeydown(event) {
+        if (this.showCommandAutocomplete) {
+            if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                this.commandActiveIndex =
+                    (this.commandActiveIndex + 1) % this.commandSuggestions.length;
+                return;
+            }
+            if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                this.commandActiveIndex =
+                    (this.commandActiveIndex - 1 + this.commandSuggestions.length) %
+                    this.commandSuggestions.length;
+                return;
+            }
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                this.draftMessage = '';
+                this.commandActiveIndex = 0;
+                return;
+            }
+            if (event.key === 'Tab') {
+                event.preventDefault();
+                this.applyActiveCommandSuggestion();
+                return;
+            }
+            if (event.key === 'Enter' && !event.shiftKey && this.isCommandMode) {
+                const exactMatch = this.commandSuggestions.find(
+                    (item) => item.command.toLowerCase() === this.draftMessage.trim().toLowerCase()
+                );
+                if (!exactMatch) {
+                    event.preventDefault();
+                    this.applyActiveCommandSuggestion();
+                    return;
+                }
+            }
+        }
+        if (this.showSkillAutocomplete) {
+            if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                this.skillActiveIndex =
+                    (this.skillActiveIndex + 1) % this.mentionSuggestions.length;
+                return;
+            }
+            if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                this.skillActiveIndex =
+                    (this.skillActiveIndex - 1 + this.mentionSuggestions.length) %
+                    this.mentionSuggestions.length;
+                return;
+            }
+            if (event.key === 'Tab') {
+                event.preventDefault();
+                this.applyActiveSkillSuggestion();
+                return;
+            }
+            if (event.key === 'Enter' && !event.shiftKey) {
+                const normalizedDraft = (this.mentionTokenInfo?.token || '').toLowerCase();
+                const exactMatch = this.mentionSuggestions.find(
+                    (item) => item.mention.toLowerCase() === normalizedDraft
+                );
+                if (!exactMatch) {
+                    event.preventDefault();
+                    this.applyActiveSkillSuggestion();
+                    return;
+                }
+            }
+        }
         if (event.key === 'Enter' && !event.shiftKey) {
             event.preventDefault();
             this.sendMessage(this.draftMessage);
@@ -213,6 +462,19 @@ export default class AgentforceChat extends LightningElement {
     handleSuggestionClick(event) {
         const suggestion = event.currentTarget.dataset.value;
         this.sendMessage(suggestion);
+    }
+
+    handleCommandSuggestionClick(event) {
+        const command = event.currentTarget.dataset.command;
+        this.draftMessage = command;
+        this.commandActiveIndex = 0;
+        this.focusInput();
+    }
+
+    handleSkillSuggestionClick(event) {
+        const label = event.currentTarget.dataset.label;
+        this.applySkillSuggestion(label);
+        this.focusInput();
     }
 
     handleRetryClick() {
@@ -265,11 +527,35 @@ export default class AgentforceChat extends LightningElement {
         navigator.clipboard.writeText(message.content);
     }
 
+    handleResolvedPreviewClick(event) {
+        const messageId = event.currentTarget.dataset.id;
+        const message = this.messages.find((item) => item.id === messageId);
+        if (!message?.resolvedContent) {
+            return;
+        }
+        this.resolvedPreviewTitle = 'Resolved prompt sent to agent';
+        this.resolvedPreviewText = message.resolvedContent;
+        this.resolvedPreviewOpen = true;
+    }
+
+    closeResolvedPreview() {
+        this.resolvedPreviewOpen = false;
+        this.resolvedPreviewText = '';
+        this.resolvedPreviewTitle = '';
+    }
+
     async handleSend(text, options = {}) {
         const clientRequestId = this.generateId('client');
+        const skillResolution = this.resolveSkillMentions(text);
         const userMessage = this.appendMessage('user', text, {
-            clientRequestId
+            clientRequestId,
+            resolvedContent:
+                skillResolution.usedSkillLabels.length > 0
+                    ? skillResolution.resolvedText
+                    : null,
+            usedSkillLabels: skillResolution.usedSkillLabels
         });
+        const messageWithContext = this.withAgentContext(skillResolution.resolvedText);
         this.dispatchMessageEvent(userMessage, 'outgoing');
         this.draftMessage = '';
         this.state = STATE.SENDING;
@@ -278,7 +564,7 @@ export default class AgentforceChat extends LightningElement {
             this.state = STATE.WAITING;
             const response = await sendAgentMessage({
                 agentApiName: this.agentApiName,
-                message: text,
+                message: messageWithContext,
                 sessionId: this.currentSessionId
             });
             this.state = STATE.RECEIVING;
@@ -337,6 +623,144 @@ export default class AgentforceChat extends LightningElement {
         if (options.focusInput !== false) {
             this.focusInput();
         }
+    }
+
+    withAgentContext(text) {
+        if (!this.recordId) {
+            return text;
+        }
+        return [
+            '[Salesforce Context]',
+            `recordId=${this.recordId}`,
+            '[/Salesforce Context]',
+            '',
+            text
+        ].join('\n');
+    }
+
+    handleSlashCommand(text) {
+        if (!text.startsWith('/')) {
+            return false;
+        }
+
+        const [rawCommand] = text.split(/\s+/, 1);
+        const command = rawCommand.toLowerCase();
+
+        switch (command) {
+            case '/clear':
+                this.clearConversation();
+                this.addSystemMessage('Conversation cleared.');
+                return true;
+            case '/new':
+                this.clearConversation({ keepSession: false });
+                this.addSystemMessage('Started a new conversation.');
+                return true;
+            case '/reset':
+                this.clearConversation({ keepSession: false });
+                this.addSystemMessage('Conversation and session reset.');
+                return true;
+            case '/retry':
+                if (!this.lastFailedUserMessage) {
+                    this.addSystemMessage('No failed message to retry.');
+                    return true;
+                }
+                this.hasInteracted = true;
+                this.handleSend(this.lastFailedUserMessage);
+                return true;
+            case '/session':
+                this.addSystemMessage(
+                    `Session: ${this.currentSessionId || 'not set'} | Agent: ${
+                        this.agentApiName || 'not set'
+                    }`
+                );
+                return true;
+            case '/context':
+                this.addSystemMessage(
+                    this.recordId
+                        ? `Context recordId: ${this.recordId}`
+                        : 'No active record context.'
+                );
+                return true;
+            case '/prompts':
+                this.addSystemMessage(
+                    this.parsedSuggestions.length > 0
+                        ? `Prompts: ${this.parsedSuggestions.join(' | ')}`
+                        : 'No sample prompts configured.'
+                );
+                return true;
+            case '/help':
+                this.addSystemMessage(this.commandHintText);
+                return true;
+            default:
+                this.addSystemMessage(`Unknown command: ${rawCommand}. Try /help.`);
+                return true;
+        }
+    }
+
+    applyActiveCommandSuggestion() {
+        const activeSuggestion = this.commandSuggestions[this.commandActiveIndex];
+        if (!activeSuggestion) {
+            return;
+        }
+        this.draftMessage = activeSuggestion.command;
+    }
+
+    applyActiveSkillSuggestion() {
+        const activeSuggestion = this.mentionSuggestions[this.skillActiveIndex];
+        if (!activeSuggestion) {
+            return;
+        }
+        this.applySkillSuggestion(activeSuggestion.label);
+    }
+
+    applySkillSuggestion(label) {
+        const info = this.mentionTokenInfo;
+        if (!info) {
+            return;
+        }
+        this.draftMessage = `${this.draftMessage.slice(
+            0,
+            info.startIndex
+        )}@${label} `;
+        this.skillActiveIndex = 0;
+    }
+
+    resolveSkillMentions(text) {
+        if (!text || this.configuredSkills.length === 0) {
+            return {
+                resolvedText: text,
+                usedSkillLabels: []
+            };
+        }
+        const skillsByLabel = this.configuredSkills.reduce((acc, skill) => {
+            acc[skill.label.toLowerCase()] = skill;
+            return acc;
+        }, {});
+        const labels = Object.keys(skillsByLabel).sort((a, b) => b.length - a.length);
+        let resolvedText = text;
+        const usedSkillLabels = new Set();
+
+        labels.forEach((labelKey) => {
+            const escaped = this.escapeRegExp(labelKey);
+            const pattern = new RegExp(`(^|\\s)@${escaped}(?=$|\\s|[.,!?;:])`, 'gi');
+            resolvedText = resolvedText.replace(pattern, (match, prefix) => {
+                const skill = skillsByLabel[labelKey];
+                if (!skill) {
+                    return match;
+                }
+                usedSkillLabels.add(skill.label);
+                return `${prefix}${skill.content}`;
+            });
+        });
+
+        return {
+            resolvedText,
+            usedSkillLabels: Array.from(usedSkillLabels)
+        };
+    }
+
+    escapeRegExp(value) {
+        return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
     initializeWelcomeMessage() {
@@ -615,7 +1039,11 @@ export default class AgentforceChat extends LightningElement {
             clientRequestId: extra.clientRequestId,
             citations: extra.citations || [],
             errorCode: extra.errorCode,
-            retryable: extra.retryable || false
+            retryable: extra.retryable || false,
+            resolvedContent: extra.resolvedContent || null,
+            usedSkillLabels: Array.isArray(extra.usedSkillLabels)
+                ? extra.usedSkillLabels
+                : []
         };
         this.messages = [...this.messages, message].slice(-this.maxHistory);
         this.persistActiveHistory();
