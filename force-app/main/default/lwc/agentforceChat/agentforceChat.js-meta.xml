@@ -15,6 +15,12 @@
             <property name="title" type="String" label="Title"/>
             <property name="placeholder" type="String" label="Input Placeholder"/>
             <property name="welcomeMessage" type="String" label="Welcome Message"/>
+            <property
+                name="samplePrompts"
+                type="String"
+                label="Sample Prompts"
+                description="Use newline, semicolon, or pipe separators."
+            />
             <property name="showHeader" type="Boolean" label="Show Header" default="true"/>
             <property name="showAvatar" type="Boolean" label="Show Avatars" default="true"/>
             <property name="maxHistory" type="Integer" label="Max History" default="30"/>

@@ -10,14 +10,19 @@ const STATE = Object.freeze({
 });
 
 const STORAGE_PREFIX = 'agentforce-chat-session';
+const HISTORY_STORAGE_PREFIX = 'agentforce-chat-history';
+const HISTORY_INDEX_SUFFIX = 'index';
+const ACTIVE_CONVERSATION_SUFFIX = 'active';
 
 export default class AgentforceChat extends LightningElement {
+    @api recordId;
     @api agentApiName;
     @api sessionId;
     @api title = 'Support Assistant';
     @api placeholder = 'Type your message...';
     @api welcomeMessage = 'How can I help?';
     @api suggestions = [];
+    @api samplePrompts = '';
     @api showHeader = false;
     @api showAvatar = false;
     @api maxHistory = 30;
@@ -28,16 +33,19 @@ export default class AgentforceChat extends LightningElement {
 
     @track messages = [];
     @track state = STATE.IDLE;
+    @track conversations = [];
 
     draftMessage = '';
     hasInteracted = false;
     lastFailedUserMessage = null;
     isConnected = false;
     localSessionId;
+    activeConversationId;
 
     connectedCallback() {
         this.isConnected = true;
         this.initializeSession();
+        this.initializeHistory();
         this.initializeWelcomeMessage();
     }
 
@@ -58,13 +66,16 @@ export default class AgentforceChat extends LightningElement {
     @api
     clearConversation({ keepSession = true } = {}) {
         this.messages = [];
+        this.persistActiveHistory();
         this.lastFailedUserMessage = null;
+        this.hasInteracted = false;
         this.state = STATE.IDLE;
         if (!keepSession) {
             const previous = this.currentSessionId;
             this.localSessionId = null;
             this.persistSessionId(null);
             this.dispatchSessionChange(previous, null, 'reset');
+            this.createNewConversation();
         }
         this.initializeWelcomeMessage();
     }
@@ -121,7 +132,40 @@ export default class AgentforceChat extends LightningElement {
     }
 
     get showSuggestions() {
-        return this.suggestions?.length > 0 && !this.hasInteracted;
+        return this.parsedSuggestions.length > 0 && !this.hasInteracted;
+    }
+
+    get parsedSuggestions() {
+        if (Array.isArray(this.suggestions) && this.suggestions.length > 0) {
+            return this.suggestions
+                .map((value) => (value || '').trim())
+                .filter((value) => value.length > 0);
+        }
+
+        if (!this.samplePrompts || typeof this.samplePrompts !== 'string') {
+            return [];
+        }
+
+        // Accept newline, semicolon, or pipe-separated prompt strings from App Builder.
+        return this.samplePrompts
+            .split(/\r?\n|;|\|/g)
+            .map((value) => value.trim())
+            .filter((value) => value.length > 0);
+    }
+
+    get conversationOptions() {
+        return this.conversations.map((conversation) => ({
+            label: conversation.title,
+            value: conversation.id
+        }));
+    }
+
+    get hasPreviousConversations() {
+        return this.conversations.length > 0;
+    }
+
+    get canDeleteConversation() {
+        return Boolean(this.activeConversationId);
     }
 
     get hasMessages() {
@@ -133,11 +177,13 @@ export default class AgentforceChat extends LightningElement {
     }
 
     get normalizedMessages() {
-        return this.messages.map((message) => ({
+        return this.messages.map((message, index) => ({
             ...message,
+            renderKey: `${index}:${message.id}`,
             isUser: message.role === 'user',
             isAssistant: message.role === 'assistant',
             isSystem: message.role === 'system',
+            useLinkifyText: !this.markdownEnabled,
             renderedContent: this.markdownEnabled
                 ? this.renderMarkdown(message.content)
                 : this.escapeHtml(message.content),
@@ -175,6 +221,41 @@ export default class AgentforceChat extends LightningElement {
         }
     }
 
+    handleConversationChange(event) {
+        const conversationId = event.detail.value;
+        this.openConversation(conversationId);
+    }
+
+    handleNewConversationClick() {
+        this.createNewConversation();
+    }
+
+    handleDeleteConversationClick() {
+        if (!this.activeConversationId) {
+            return;
+        }
+
+        const conversationIdToDelete = this.activeConversationId;
+        const remaining = this.conversations.filter(
+            (conversation) => conversation.id !== conversationIdToDelete
+        );
+        this.deleteStoredHistory(conversationIdToDelete);
+        this.conversations = remaining;
+        this.persistConversationIndex();
+
+        if (remaining.length === 0) {
+            this.createNewConversation();
+            return;
+        }
+
+        this.activeConversationId = remaining[0].id;
+        this.persistActiveConversationId(this.activeConversationId);
+        const stored = this.readStoredHistory(this.activeConversationId) || [];
+        this.messages = stored;
+        this.hasInteracted = this.messages.some((message) => message.role === 'user');
+        this.restoreConversationSession();
+    }
+
     handleCopyMessage(event) {
         const messageId = event.currentTarget.dataset.id;
         const message = this.messages.find((item) => item.id === messageId);
@@ -209,6 +290,7 @@ export default class AgentforceChat extends LightningElement {
                 } else {
                     this.localSessionId = response.sessionId;
                     this.persistSessionId(response.sessionId);
+                    this.updateConversationSession(response.sessionId);
                     this.dispatchSessionChange(previous, response.sessionId, 'created');
                 }
             }
@@ -263,6 +345,118 @@ export default class AgentforceChat extends LightningElement {
         }
     }
 
+    initializeHistory() {
+        this.conversations = this.readConversationIndex();
+        const activeConversationId = this.readActiveConversationId();
+        if (activeConversationId) {
+            this.activeConversationId = activeConversationId;
+        } else if (this.conversations.length > 0) {
+            this.activeConversationId = this.conversations[0].id;
+        } else {
+            this.createNewConversation();
+            return;
+        }
+
+        const stored = this.readStoredHistory(this.activeConversationId);
+        if (!stored || !Array.isArray(stored) || stored.length === 0) {
+            this.messages = [];
+            this.restoreConversationSession();
+            return;
+        }
+
+        const normalized = stored
+            .filter((message) => message?.role && message?.content)
+            .map((message) => ({
+                id: message.id || this.generateId(message.role),
+                role: message.role,
+                content: message.content,
+                timestamp: message.timestamp || new Date().toISOString(),
+                requestId: message.requestId || null,
+                clientRequestId: message.clientRequestId || null,
+                citations: Array.isArray(message.citations) ? message.citations : [],
+                errorCode: message.errorCode || null,
+                retryable: Boolean(message.retryable)
+            }))
+            .slice(-this.maxHistory);
+
+        if (normalized.length > 0) {
+            this.messages = normalized;
+        }
+        this.restoreConversationSession();
+    }
+
+    createNewConversation() {
+        const conversationId = this.generateId('conv');
+        this.activeConversationId = conversationId;
+        this.messages = [];
+        this.hasInteracted = false;
+        this.localSessionId = null;
+        this.persistSessionId(null);
+        this.persistActiveConversationId(conversationId);
+        this.upsertConversation({
+            id: conversationId,
+            title: 'New conversation',
+            updatedAt: new Date().toISOString(),
+            sessionId: null
+        });
+    }
+
+    openConversation(conversationId) {
+        if (!conversationId || conversationId === this.activeConversationId) {
+            return;
+        }
+        this.activeConversationId = conversationId;
+        this.persistActiveConversationId(conversationId);
+        const stored = this.readStoredHistory(conversationId) || [];
+        this.messages = stored;
+        this.hasInteracted = this.messages.some((message) => message.role === 'user');
+        this.restoreConversationSession();
+    }
+
+    restoreConversationSession() {
+        if (this.mode === 'controlled') {
+            return;
+        }
+        const active = this.conversations.find(
+            (conversation) => conversation.id === this.activeConversationId
+        );
+        this.localSessionId = active?.sessionId || null;
+        this.persistSessionId(this.localSessionId);
+    }
+
+    updateConversationSession(sessionId) {
+        if (!this.activeConversationId) {
+            return;
+        }
+        const active = this.conversations.find(
+            (conversation) => conversation.id === this.activeConversationId
+        );
+        this.upsertConversation({
+            id: this.activeConversationId,
+            title: active?.title || 'New conversation',
+            updatedAt: new Date().toISOString(),
+            sessionId
+        });
+    }
+
+    upsertConversation(conversation) {
+        const existing = this.conversations.find(
+            (item) => item.id === conversation.id
+        );
+        const next = existing
+            ? this.conversations.map((item) => {
+                  if (item.id === conversation.id) {
+                      return { ...item, ...conversation };
+                  }
+                  return item;
+              })
+            : [conversation, ...this.conversations];
+        this.conversations = [...next].sort((a, b) =>
+            b.updatedAt.localeCompare(a.updatedAt)
+        );
+        this.persistConversationIndex();
+    }
+
     initializeSession() {
         if (this.mode === 'controlled') {
             return;
@@ -300,6 +494,117 @@ export default class AgentforceChat extends LightningElement {
         return window.sessionStorage.getItem(this.storageKey());
     }
 
+    historyStorageKey() {
+        return `${HISTORY_STORAGE_PREFIX}:${this.agentApiName || 'default'}:${
+            this.activeConversationId || 'default'
+        }`;
+    }
+
+    historyIndexStorageKey() {
+        return `${HISTORY_STORAGE_PREFIX}:${this.agentApiName || 'default'}:${HISTORY_INDEX_SUFFIX}`;
+    }
+
+    activeConversationStorageKey() {
+        return `${HISTORY_STORAGE_PREFIX}:${this.agentApiName || 'default'}:${ACTIVE_CONVERSATION_SUFFIX}`;
+    }
+
+    persistActiveHistory() {
+        if (!window?.sessionStorage) {
+            return;
+        }
+        if (!this.activeConversationId) {
+            return;
+        }
+        window.sessionStorage.setItem(
+            this.historyStorageKey(),
+            JSON.stringify(this.messages)
+        );
+        const firstUserMessage = this.messages.find((message) => message.role === 'user');
+        const title = firstUserMessage?.content
+            ? firstUserMessage.content.slice(0, 48)
+            : 'New conversation';
+        const active = this.conversations.find(
+            (conversation) => conversation.id === this.activeConversationId
+        );
+        this.upsertConversation({
+            id: this.activeConversationId,
+            title,
+            updatedAt: new Date().toISOString(),
+            sessionId: active?.sessionId || this.currentSessionId || null
+        });
+    }
+
+    readStoredHistory(conversationId = this.activeConversationId) {
+        if (!window?.sessionStorage) {
+            return null;
+        }
+        if (!conversationId) {
+            return null;
+        }
+        const raw = window.sessionStorage.getItem(
+            `${HISTORY_STORAGE_PREFIX}:${this.agentApiName || 'default'}:${conversationId}`
+        );
+        if (!raw) {
+            return null;
+        }
+        try {
+            return JSON.parse(raw);
+        } catch {
+            return null;
+        }
+    }
+
+    deleteStoredHistory(conversationId) {
+        if (!window?.sessionStorage || !conversationId) {
+            return;
+        }
+        const key = `${HISTORY_STORAGE_PREFIX}:${this.agentApiName || 'default'}:${conversationId}`;
+        window.sessionStorage.removeItem(key);
+    }
+
+    persistConversationIndex() {
+        if (!window?.sessionStorage) {
+            return;
+        }
+        window.sessionStorage.setItem(
+            this.historyIndexStorageKey(),
+            JSON.stringify(this.conversations)
+        );
+    }
+
+    readConversationIndex() {
+        if (!window?.sessionStorage) {
+            return [];
+        }
+        const raw = window.sessionStorage.getItem(this.historyIndexStorageKey());
+        if (!raw) {
+            return [];
+        }
+        try {
+            const parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch {
+            return [];
+        }
+    }
+
+    persistActiveConversationId(conversationId) {
+        if (!window?.sessionStorage || !conversationId) {
+            return;
+        }
+        window.sessionStorage.setItem(
+            this.activeConversationStorageKey(),
+            conversationId
+        );
+    }
+
+    readActiveConversationId() {
+        if (!window?.sessionStorage) {
+            return null;
+        }
+        return window.sessionStorage.getItem(this.activeConversationStorageKey());
+    }
+
     appendMessage(role, content, extra = {}) {
         const message = {
             id: extra.id || this.generateId(role),
@@ -313,6 +618,7 @@ export default class AgentforceChat extends LightningElement {
             retryable: extra.retryable || false
         };
         this.messages = [...this.messages, message].slice(-this.maxHistory);
+        this.persistActiveHistory();
         return message;
     }
 
@@ -390,8 +696,21 @@ export default class AgentforceChat extends LightningElement {
         rendered = rendered.replace(/\*(.*?)\*/g, '<em>$1</em>');
         rendered = rendered.replace(/`([^`]+)`/g, '<code>$1</code>');
         rendered = rendered.replace(
-            /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
-            '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
+            /\[([^\]]+)\]\(((?:https?:\/\/|\/)[^\s)]+)\)/g,
+            (_match, label, href) => {
+                if (href.startsWith('/')) {
+                    const absoluteHref = `${window.location.origin}${href}`;
+                    const recordMatch = href.match(
+                        /^\/lightning\/r\/([^/]+)\/([^/]+)\/view$/i
+                    );
+                    if (recordMatch) {
+                        const objectApiName = recordMatch[1];
+                        return `<code>${objectApiName}</code> <a href="${absoluteHref}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+                    }
+                    return `<a href="${absoluteHref}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+                }
+                return `<a href="${href}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+            }
         );
         rendered = rendered.replace(
             /(?:^|\n)-\s(.+?)(?=\n|$)/g,

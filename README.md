@@ -1,58 +1,236 @@
-# Salesforce DX Project
+# Agentforce Chat LWC (Salesforce DX)
 
-Salesforce DX is a development approach that brings source-driven development, team collaboration, and continuous integration to the Salesforce Platform. Instead of working directly in an org through a web browser, you work with metadata as source files in a local DX project, track changes in version control, and deploy through automated processes.
+This project contains a reusable Lightning Web Component (`c-agentforce-chat`) and Apex facade (`AgentforceService`) for embedding an Agentforce chat experience anywhere in Lightning Experience.
 
-This project template gets you started with the tools and structure you need to build Salesforce applications using source control, scratch orgs, and the Salesforce CLI.
+![LWC Client](./lwc-client.png)
 
-## Prerequisites
+The UI is decoupled from direct REST calls. The component calls Apex, and Apex invokes Agentforce through `Invocable.Action.createCustomAction(...)`.
 
-Before you start, make sure you have:
+## Implemented Features
 
-- **Salesforce CLI** - Download from [developer.salesforce.com/tools/salesforcecli](https://developer.salesforce.com/tools/salesforcecli). See [Install Salesforce CLI](https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_install_cli.htm) for details.
-- **VS Code with Salesforce Extension Pack** - See [Installation Instructions](https://developer.salesforce.com/docs/platform/sfvscode-extensions/guide/install.html) for details. Includes the Agentforce Vibes extension.
-- **A development org** - Sign up for a free Developer Edition org [here](https://developer.salesforce.com/signup).
-- **Dev Hub enabled** (optional, required to create scratch orgs) - You can enable Dev Hub in your development org under Setup > Dev Hub.  See [Provide Developers Access to Salesforce DX Tools](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_setup_dx_tools.htm).
+- Reusable chat UI with conversation history and loading state.
+- Suggested prompts, retry, copy assistant message, and auto-scroll.
+- Session persistence for uncontrolled mode (`sessionStorage`).
+- Public API methods: `sendMessage`, `clearConversation`, `focusInput`, `setSession`, `addSystemMessage`.
+- Events: `message`, `response`, `error`, `sessionchange`.
+- Markdown rendering with improved Salesforce record link UX.
+- Apex response normalization and user-safe error mapping.
 
-## Project Structure
+## Supported Features
 
-Your DX project follows this structure:
+The current component implementation supports:
 
-- **`force-app/main/default/`** - Your metadata source files live in this default package directory. You can configure additional package directories in the `sfdx-project.json` file.
-- **`config/`** - Scratch org definitions and project settings
-- **`scripts/`** - Automation scripts for common tasks
-- **`sfdx-project.json`** - Project manifest that defines package directories, namespace, API version, and other project-level settings
+- **Agent invocation via Apex facade**
+  - No direct LWC REST callouts to Agentforce.
+  - Invokes Agentforce using `Invocable.Action.createCustomAction(...)`.
 
-See [Salesforce DX Project Configuration](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_ws_config.htm).
+- **Conversation UX**
+  - Send message with keyboard shortcut (`Enter`) and send button.
+  - Loading/typing indicator while waiting for response.
+  - Assistant message copy action.
+  - Retry last failed message.
+  - Auto-scroll behavior for active conversation flow.
 
-## Get Started
+- **History and session handling (browser-backed)**
+  - Session persistence for uncontrolled mode.
+  - Multiple browser-stored conversations per `agentApiName`.
+  - New chat creation.
+  - Conversation switcher (reopen previous messages).
+  - Delete conversation history entry.
 
-Ready to start developing? The [Get Started with Salesforce DX](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_get_started_dx.htm) guide walks you through your first project, from creating a scratch org to creating a simple Apex class or LWC to deploying your code to a sandbox.
+- **Prompt and context support**
+  - `suggestions` array input.
+  - `samplePrompts` string input (newline/semicolon/pipe parsing).
+  - Record page context support via `recordId`.
 
-## Common Salesforce CLI Commands
+- **Rendering**
+  - Plain text mode using `lightning-formatted-text` with `linkify`.
+  - Markdown mode rendering for common formatting (`**bold**`, `*italic*`, inline code, links, lists).
+  - Salesforce record-link friendly rendering in markdown mode.
+  - Citation list rendering when citations are present.
 
-Here are common CLI commands that you'll use the most:
+- **Public API and events**
+  - Methods: `sendMessage`, `clearConversation`, `focusInput`, `setSession`, `addSystemMessage`.
+  - Events: `message`, `response`, `error`, `sessionchange`.
 
-- `sf org login web`: Authorize an org
-- `sf org open`: Open your org in a browser
-- `sf org create scratch`: Create a scratch org
-- `sf project deploy start`: Deploy metadata to your org
-- `sf project retrieve start`: Retrieve metadata from your org
-- `sf template generate <artifact>`: Scaffold new components, such as Apex classes and triggers, LWC components, Lightning apps, and more
-- `sf apex <command>`: Run Apex tests, run anonymous Apex blocks, and view logs
-- `sf data <command>`: Work with test data
-- `sf alias <command>`: Manage org aliases
-- `sf config <command>`: Configure CLI settings
+## Key Metadata
 
-## Use Agentforce Vibes to Build Lightning Apps
+- LWC bundle: `force-app/main/default/lwc/agentforceChat`
+- Apex service: `force-app/main/default/classes/AgentforceService.cls`
+- Apex test: `force-app/main/default/classes/AgentforceServiceTest.cls`
+- LWC Jest test: `force-app/main/default/lwc/agentforceChat/__tests__/agentforceChat.test.js`
 
-Transform your ideas into custom Lightning apps that extend CRM workflows directly in Lightning Experience. Through natural conversations with Agentforce Vibes, implement custom objects and fields, complex business logic, and dynamic UI components. See [Build a Lightning App Using Agentforce Vibes](https://developer.salesforce.com/docs/platform/einstein-for-devs/guide/lexapp-overview.html).
+## Current Agentforce Invocation Shape
 
-## Additional Resources
+In `AgentforceService`, the invocable call uses:
 
-- [Agentforce Vibes Developer Guide](https://developer.salesforce.com/docs/platform/einstein-for-devs/guide/einstein-overview.html)
-- [Salesforce CLI Installation Guide](https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_intro.htm)
-- [Salesforce DX Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/)
-- [Salesforce CLI Command Reference](https://developer.salesforce.com/docs/atlas.en-us.sfdx_cli_reference.meta/sfdx_cli_reference/)
-- [Salesforce CLI Plugin Development Guide](https://developer.salesforce.com/docs/platform/salesforce-cli-plugin/guide/conceptual-overview.html)
-- [Salesforce VS Code Extensions Documentation](https://developer.salesforce.com/tools/vscode/)
+```apex
+Invocable.Action action = Invocable.Action.createCustomAction(
+    ACTION_TYPE,
+    null,
+    agentApiName,
+    '1.1.0'
+);
+```
+
+Current constants:
+
+- `ACTION_TYPE = 'generateAiAgentResponse'`
+- `ACTION_NAME = 'generateAiAgentResponse'` (kept in class for compatibility/readability)
+
+## Output Parsing Notes
+
+Agentforce output in this org can arrive as:
+
+- `response` (plain text), or
+- `agentResponse` (JSON string), where text is at `value.message`.
+
+`AgentforceService` handles both formats.
+
+## Local Development
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Lint LWC:
+
+```bash
+npx eslint "force-app/main/default/lwc/**/*.js"
+```
+
+Run Jest:
+
+```bash
+npm run test:unit
+```
+
+Run Apex test in org:
+
+```bash
+sf apex run test --target-org "<org-username-or-alias>" --tests "AgentforceServiceTest" --result-format json --code-coverage --wait 30
+```
+
+## Deploy
+
+Use this sequence for predictable deployments.
+
+### 1) Authenticate and select target org
+
+```bash
+sf org login web --alias "<org-alias>"
+sf org display --target-org "<org-alias>"
+```
+
+### 2) (Recommended) Validate before deploy
+
+```bash
+sf project deploy start \
+  --dry-run \
+  --target-org "<org-alias>" \
+  --source-dir "force-app/main/default/classes/AgentforceService.cls" \
+  --source-dir "force-app/main/default/classes/AgentforceService.cls-meta.xml" \
+  --source-dir "force-app/main/default/classes/AgentforceServiceTest.cls" \
+  --source-dir "force-app/main/default/classes/AgentforceServiceTest.cls-meta.xml" \
+  --source-dir "force-app/main/default/lwc/agentforceChat" \
+  --wait 30 \
+  --json
+```
+
+### 3) Deploy Apex service + tests
+
+```bash
+sf project deploy start \
+  --target-org "<org-alias>" \
+  --source-dir "force-app/main/default/classes/AgentforceService.cls" \
+  --source-dir "force-app/main/default/classes/AgentforceService.cls-meta.xml" \
+  --source-dir "force-app/main/default/classes/AgentforceServiceTest.cls" \
+  --source-dir "force-app/main/default/classes/AgentforceServiceTest.cls-meta.xml" \
+  --wait 30 \
+  --json
+```
+
+### 4) Deploy LWC bundle
+
+```bash
+sf project deploy start \
+  --target-org "<org-alias>" \
+  --source-dir "force-app/main/default/lwc/agentforceChat" \
+  --wait 30 \
+  --json
+```
+
+### 5) Run Apex test
+
+```bash
+sf apex run test \
+  --target-org "<org-alias>" \
+  --tests "AgentforceServiceTest" \
+  --result-format json \
+  --code-coverage \
+  --wait 30
+```
+
+### 6) Add component to a Lightning page
+
+1. Open the org: `sf org open --target-org "<org-alias>"`
+2. Go to **Lightning App Builder**.
+3. Add **Agentforce Chat** (`c-agentforce-chat`) to a page.
+4. Configure at minimum:
+   - `agentApiName` (for example `CRM_Assistant`)
+   - optional `samplePrompts`
+   - optional `showHeader`, `showAvatar`, `maxHistory`
+
+### One-command deploy (quick path)
+
+If you don't need separate steps:
+
+```bash
+sf project deploy start \
+  --target-org "<org-alias>" \
+  --source-dir "force-app/main/default/classes/AgentforceService.cls" \
+  --source-dir "force-app/main/default/classes/AgentforceService.cls-meta.xml" \
+  --source-dir "force-app/main/default/classes/AgentforceServiceTest.cls" \
+  --source-dir "force-app/main/default/classes/AgentforceServiceTest.cls-meta.xml" \
+  --source-dir "force-app/main/default/lwc/agentforceChat" \
+  --wait 30 \
+  --json
+```
+
+## Anonymous Verification Scripts
+
+These helper scripts are included under `scripts/`:
+
+- `verifyAgentforceService.apex`
+- `verifyAgentforceInvoker.apex`
+- `inspectInvocableResult.apex`
+
+Example:
+
+```bash
+sf apex run --target-org "<org-username-or-alias>" --file "scripts/verifyAgentforceService.apex" --json
+```
+
+## Contributing
+
+Contributions are very welcome. If you want to improve the component, please open a pull request with:
+
+- a short description of the problem and approach,
+- tests for behavior changes (Jest and/or Apex as applicable),
+- and deployment notes when metadata shape changes.
+
+Suggested workflow:
+
+1. Create a feature branch.
+2. Implement changes in small, reviewable commits.
+3. Run lint and tests locally.
+4. Open a PR with screenshots or short notes for UI changes.
+
+If you have ideas but not a full implementation, opening an issue with repro steps is also appreciated.
+
+## License
+
+This project is licensed under the MIT License. See `LICENSE` for details.
 

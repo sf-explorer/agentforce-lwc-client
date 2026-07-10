@@ -3,6 +3,33 @@
         <template lwc:if={showHeader}>
             <header class="agentforce-chat__header slds-card__header slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
                 <h2 class="slds-text-heading_small">{title}</h2>
+                <div class="agentforce-chat__header-actions slds-grid slds-grid_vertical-align-center">
+                    <template lwc:if={hasPreviousConversations}>
+                        <lightning-combobox
+                            class="agentforce-chat__conversation-picker slds-m-right_x-small"
+                            label="Conversation history"
+                            variant="label-hidden"
+                            value={activeConversationId}
+                            options={conversationOptions}
+                            onchange={handleConversationChange}
+                        ></lightning-combobox>
+                    </template>
+                    <lightning-button
+                        label="New Chat"
+                        title="Start a new conversation"
+                        variant="neutral"
+                        onclick={handleNewConversationClick}
+                    ></lightning-button>
+                    <lightning-button-icon
+                        icon-name="utility:delete"
+                        alternative-text="Delete selected chat"
+                        title="Delete selected chat"
+                        variant="border-filled"
+                        onclick={handleDeleteConversationClick}
+                        disabled={disabled}
+                        if:true={canDeleteConversation}
+                    ></lightning-button-icon>
+                </div>
             </header>
         </template>
 
@@ -10,7 +37,7 @@
             <template lwc:if={hasMessages}>
                 <template for:each={normalizedMessages} for:item="message">
                     <article
-                        key={message.id}
+                        key={message.renderKey}
                         class="agentforce-chat__message slds-media"
                         data-role={message.role}
                     >
@@ -26,9 +53,17 @@
 
                         <div class="slds-media__body">
                             <div class="agentforce-chat__bubble">
-                                <lightning-formatted-rich-text
-                                    value={message.renderedContent}
-                                ></lightning-formatted-rich-text>
+                                <template lwc:if={message.useLinkifyText}>
+                                    <lightning-formatted-text
+                                        value={message.content}
+                                        linkify
+                                    ></lightning-formatted-text>
+                                </template>
+                                <template lwc:else>
+                                    <lightning-formatted-rich-text
+                                        value={message.renderedContent}
+                                    ></lightning-formatted-rich-text>
+                                </template>
                             </div>
 
                             <div class="agentforce-chat__meta">
@@ -82,7 +117,7 @@
             <div class="agentforce-chat__suggestions slds-p-horizontal_medium slds-p-bottom_small">
                 <p class="slds-text-title_caps slds-m-bottom_x-small">Suggested prompts</p>
                 <div class="agentforce-chat__suggestion-list">
-                    <template for:each={suggestions} for:item="suggestion">
+                    <template for:each={parsedSuggestions} for:item="suggestion">
                         <button
                             key={suggestion}
                             class="slds-button slds-button_neutral slds-m-right_x-small slds-m-bottom_x-small"

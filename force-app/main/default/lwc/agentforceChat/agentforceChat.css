@@ -10,6 +10,14 @@
     border-bottom: 1px solid var(--slds-g-color-border-base-1, #d8dde6);
 }
 
+.agentforce-chat__header-actions {
+    gap: 0.5rem;
+}
+
+.agentforce-chat__conversation-picker {
+    min-width: 14rem;
+}
+
 .agentforce-chat__messages {
     flex: 1;
     overflow-y: auto;
@@ -69,5 +77,9 @@
     .agentforce-chat {
         min-height: 18rem;
         max-height: 32rem;
+    }
+
+    .agentforce-chat__conversation-picker {
+        min-width: 9rem;
     }
 }
