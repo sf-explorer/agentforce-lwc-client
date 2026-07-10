@@ -183,18 +183,29 @@ sf apex run test \
    - optional `samplePrompts`
    - optional `showHeader`, `showAvatar`, `maxHistory`
 
-### One-command deploy (quick path)
+### One-command deploy (recommended)
 
-If you don't need separate steps:
+This project includes a manifest that contains all required metadata for the chat component:
+
+- `manifest/package-agentforce-chat.xml`
+
+Deploy everything with one command:
 
 ```bash
 sf project deploy start \
   --target-org "<org-alias>" \
-  --source-dir "force-app/main/default/classes/AgentforceService.cls" \
-  --source-dir "force-app/main/default/classes/AgentforceService.cls-meta.xml" \
-  --source-dir "force-app/main/default/classes/AgentforceServiceTest.cls" \
-  --source-dir "force-app/main/default/classes/AgentforceServiceTest.cls-meta.xml" \
-  --source-dir "force-app/main/default/lwc/agentforceChat" \
+  --manifest "manifest/package-agentforce-chat.xml" \
+  --wait 30 \
+  --json
+```
+
+Optional dry-run validation:
+
+```bash
+sf project deploy start \
+  --dry-run \
+  --target-org "<org-alias>" \
+  --manifest "manifest/package-agentforce-chat.xml" \
   --wait 30 \
   --json
 ```
