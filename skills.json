@@ -1,0 +1,173 @@
+[
+  {
+    "Developer Name": "update_contact_details_kyc",
+    "Label": "KYC Contact Details Verification",
+    "System Modstamp": "2026-06-29T13:05:58.000+0000",
+    "Category": "Customer Service",
+    "Content": "Objective: Update outdated customer contact details.\n\nScope: Find all customers whose email, phone number, or postal address has not been verified in the last 12 months.\n\nInstructions:\n1) Query eligible customers from CRM.\n2) For each customer, draft a personalized email asking them to confirm or update their contact details.\n3) Explain briefly why accurate data is required for contract management and claims handling.\n4) Include a customer portal link when available.\n5) Use the CRM Assistant sub-agent to send the emails immediately (no approval required).\n6) For customers with no response after 10 days, create a high-priority follow-up call task.\n\nOutput format:\n- Total customers identified\n- Total emails sent\n- List of records where portal link was unavailable\n- Total follow-up tasks created",
+    "Expected_ Result": "Automated contact-update emails are sent, portal links are included when available, and 10-day follow-up call tasks are created to improve CRM data quality.",
+    "Id": "m0CKB000000GrEj2AK"
+  },
+  {
+    "Developer Name": "manage_customer_complaints",
+    "Label": "Customer Complaint Management",
+    "System Modstamp": "2026-06-18T09:45:01.000+0000",
+    "Category": "Customer Service",
+    "Content": "Objective: Resolve unanswered customer complaints quickly and consistently.\n\nScope: Process all customer complaints open for more than 48 hours without a reply.\n\nInstructions:\n1) Retrieve all matching complaints.\n2) For each complaint, review complaint details, customer history, and contract context.\n3) Draft an empathetic and professional response including either a proposed solution or a clear action plan.\n4) Mark cases that require escalation and state the reason explicitly.\n5) Send responses immediately using the CRM Assistant sub-agent (no approval required).\n6) Create high-priority follow-up tasks for complex cases.\n7) Produce a manager report with: processed complaints, escalated complaints, and required interventions.\n\nOutput format:\n- Complaints processed\n- Complaints escalated (with reason)\n- Follow-up tasks created\n- Manager action items",
+    "Expected_ Result": "Customers receive empathetic responses, escalation cases are clearly flagged, follow-up tasks are created for complex issues, and a concise summary report is delivered.",
+    "Id": "m0CKB000000GrEi2AK"
+  },
+  {
+    "Developer Name": "prepare_next_meeting",
+    "Label": "Prepare My Next Meeting",
+    "System Modstamp": "2026-06-29T14:23:18.000+0000",
+    "Category": "Sales Management",
+    "Content": "Objective: Prepare a high-impact briefing for an upcoming meeting.\n\nScope: Find upcoming meetings for today or tomorrow morning, then ask the user to choose one meeting to prepare. Use the magic argu sub-agent for analysis.\n\nInstructions:\n1) List candidate meetings with date/time, account/contact, and context.\n2) Ask the user to select one meeting.\n3) Analyze the selected meeting using magic argu.\n4) Return exactly the following 3 tables.\n\nTABLE 1 - PROFILE & KPI SUMMARY\nColumns: [Indicator] | [Value / Score] | [Comment]\nRows:\n- Profile: Name, age, role, company size\n- Loyalty: Score out of 10, tenure (e.g., customer since YYYY)\n- Value: Total annual premium, number of active contracts\n- Churn Risk: LOW / MEDIUM / HIGH and detected signal\n- Satisfaction: Score out of 5 and latest notable event\n\nTABLE 2 - CONTRACT PORTFOLIO\nColumns: [Product] | [Annual Premium] | [Renewal Date] | [Status]\nRules:\n- Status must be only \"✅ ACTIVE\" or \"🔴 NOT A CUSTOMER\"\n- Use \"—\" when data is unavailable\n\nTABLE 3 - RELATIONSHIP HISTORY\nColumns: [Month] | [Event] | [Details & Impact]\nInclude key recent interactions and business impact.\n\nFinal section: 3 cross-sell arguments + 1 best closing opportunity.",
+    "Expected_ Result": "The user selects one upcoming meeting and receives a structured 3-table briefing plus targeted cross-sell arguments and a closing opportunity.",
+    "Id": "m0CKB000000GrF12AK"
+  },
+  {
+    "Developer Name": "weekly_activity_summary",
+    "Label": "Weekly Activity Summary",
+    "System Modstamp": "2026-06-29T14:17:55.000+0000",
+    "Category": "Productivity",
+    "Content": "Objective: Provide an executive weekly performance summary.\n\nScope: Analyze the last 7 days using CRM/activity data (calls, meetings, sent/received emails, tasks, opportunities, quotes, signed contracts).\n\nHard constraint: Do not list individual actions. Provide aggregate analysis only.\n\nRequired output (exact sections):\n1) Weekly KPIs\n- Opportunity conversion rate (%)\n- Total signed contract value (€)\n- Number of new customers acquired\n2) Trend analysis\n- Quick comparison vs previous week: up / down / stable\n3) Diagnostic\n- 2 major strengths\n- 2 priority improvement areas",
+    "Expected_ Result": "A concise weekly report is delivered with core KPIs, trend direction versus last week, and a focused diagnostic of strengths and improvement priorities.",
+    "Id": "m0CKB000000GrEr2AK"
+  },
+  {
+    "Developer Name": "renewal_follow_up",
+    "Label": "Renewal Follow-up",
+    "System Modstamp": "2026-06-18T09:45:01.000+0000",
+    "Category": "Sales Management",
+    "Content": "Objective: Increase on-time contract renewals.\n\nScope: Find contracts expiring in the next 30 days that are not yet renewed.\n\nInstructions:\n1) Retrieve all eligible contracts.\n2) For each customer, draft a personalized reminder email with: expiry date, current coverage highlights, and a proposal to schedule a renewal meeting.\n3) Send emails immediately via CRM Assistant (no approval required).\n4) Create a follow-up task for 7 days later if no response is received.\n5) Notify the manager with the number of emails sent.\n\nOutput format:\n- Contracts identified\n- Emails sent\n- Follow-up tasks scheduled\n- Exceptions/errors",
+    "Expected_ Result": "Renewal reminder emails are sent automatically, 7-day follow-up tasks are created, and the manager receives a clear sent-volume summary.",
+    "Id": "m0CKB000000GrEm2AK"
+  },
+  {
+    "Developer Name": "agency_activity_analysis",
+    "Label": "Agency Activity Analysis",
+    "System Modstamp": "2026-06-29T14:01:34.000+0000",
+    "Category": "Productivity",
+    "Content": "Objective: Review team member performance for the last month.\n\nInstructions:\n1) List all salespeople available for analysis.\n2) Ask the user to choose one profile.\n3) Analyze that profile's activity over the last 30 days.\n4) Report key KPIs (volume, conversion, signed value, pipeline health).\n5) Highlight top risk indicators and priority coaching actions.\n\nOutput format:\n- Selected profile\n- KPI summary\n- Top 3 risk indicators\n- Recommended manager actions",
+    "Expected_ Result": "The manager selects one salesperson and receives a focused monthly performance audit with key KPIs and actionable risk flags.",
+    "Id": "m0CKB000000GrJE2A0"
+  },
+  {
+    "Developer Name": "plan_my_day",
+    "Label": "Plan My Day",
+    "System Modstamp": "2026-06-29T13:17:09.000+0000",
+    "Category": "Productivity",
+    "Content": "Objective: Build a practical daily action plan for an insurance agency manager.\n\nMandatory data sources: CRM data (Salesforce) AND personal calendar events. Calendar review is required before proposing actions.\n\nAudit pillars:\n1) Compliance & pending cases\n2) Cancellation alerts\n3) Unpaid invoices & suspensions\n4) Blocked commercial opportunities\n\nInstructions:\n1) Check today's calendar to identify real availability and meeting constraints.\n2) Analyze CRM signals across the four pillars.\n3) Prioritize actions that fit available time slots.\n4) Respond in this exact concise format:\n\n### 🔥 ALERTS (max 3)\n[Client] : [Issue] -> [Recommended action]\n\n### 📤 READY-TO-SEND MESSAGES (2-3)\n[Personalized copy-paste messages]\n\n### 📊 METRIC OF THE DAY\n[Financial impact + key metrics]\n\n### ⏭️ NEXT STEPS\n[3 concrete actions aligned with calendar availability]",
+    "Expected_ Result": "A concise operational dashboard is produced with top alerts, ready-to-send messages, a metric of the day, and next actions aligned with actual calendar availability.",
+    "Id": "m0CKB000000GrEc2AK"
+  },
+  {
+    "Developer Name": "birthday_email_marketing",
+    "Label": "Birthday Email Marketing",
+    "System Modstamp": "2026-06-29T13:03:31.000+0000",
+    "Category": "Customer Service",
+    "Content": "Objective: Strengthen customer relationship with timely birthday outreach.\n\nInstructions:\n1) Compute the date exactly 7 days from now.\n2) Query Contact records using BirthDate to find customers with birthdays in the next 7 days.\n3) Exclude all non-matching customers from output.\n4) If no customers are found, stop and return: \"No birthdays in the next 7 days.\"\n5) For each matching customer, draft a personalized birthday email with a warm and professional tone.\n6) Mention availability for contract questions and propose an annual coverage review.\n7) Create a reminder task for the same day as each birthday.\n\nOutput format:\n- Customers found\n- Birthday emails drafted/sent\n- Reminder tasks created",
+    "Expected_ Result": "Birthday messages are sent on time, annual coverage review is suggested, and reminder tasks are created to reinforce customer engagement.",
+    "Id": "m0CKB000000GrEk2AK"
+  },
+  {
+    "Developer Name": "client_portfolio_analysis",
+    "Label": "Client Portfolio Analysis",
+    "System Modstamp": "2026-06-29T13:04:29.000+0000",
+    "Category": "Sales Management",
+    "Content": "Objective: Identify high-value cross-sell opportunities across the client portfolio.\n\nInstructions:\n1) Analyze each customer's current contracts.\n2) Detect missing product lines (home, auto, health, protection, savings).\n3) Rank the top 10 opportunities by estimated revenue potential.\n4) For each opportunity, provide:\n- Why this is a strong opportunity\n- A personalized commercial approach\n5) Use CRM Assistant sub-agent and email the final report to the manager.\n\nOutput format:\n- Top 10 ranked opportunities\n- Missing products by customer\n- Personalized outreach strategy per opportunity",
+    "Expected_ Result": "A ranked Top 10 cross-sell report is generated with revenue potential, product gap analysis, and personalized sales approaches, then sent by email.",
+    "Id": "m0CKB000000GrEh2AK"
+  },
+  {
+    "Developer Name": "received_leads_today",
+    "Label": "Received Leads Today",
+    "System Modstamp": "2026-07-10T14:58:44.000+0000",
+    "Category": "Sales Management",
+    "Content": "Objective: Provide a clear daily lead intake snapshot.\n\nInstructions:\n1) Retrieve all leads created or received today.\n2) Display each lead with source, creation time, owner, status, and priority.\n3) Sort by priority first, then creation time (newest first).\n4) Add a short summary: total leads and leads requiring immediate follow-up.\n\nOutput format:\n- Prioritized lead list\n- Total leads today\n- Immediate follow-up count",
+    "Expected_ Result": "A prioritized list of today's leads is displayed with a clear summary of total volume and urgent follow-ups.",
+    "Id": "m0CKB000000GrN32AK"
+  },
+  {
+    "Developer Name": "urgent_claims_processing",
+    "Label": "Urgent Claims Processing",
+    "System Modstamp": "2026-06-29T10:07:45.000+0000",
+    "Category": "Claims Management",
+    "Content": "Objective: Triage and coordinate urgent claims reported in the last 24 hours.\n\nScope: Claims with high priority only.\n\nInstructions:\n1) Retrieve urgent claims from the last 24 hours.\n2) For each claim, review status and submitted documents.\n3) Determine whether an expert appointment is required and justify the decision.\n4) Produce a short case summary with next recommended actions.\n5) Send an internal synthesis email after user approval (analysis does not require approval).\n\nOutput format:\n- Urgent claims list\n- Expert required: yes/no + reason\n- Recommended next actions\n- Pending approval for synthesis email",
+    "Expected_ Result": "Urgent claims are analyzed with clear expert recommendations and action plans, and a synthesis email is prepared for approval before sending.",
+    "Id": "m0CKB000000GrEp2AK"
+  },
+  {
+    "Developer Name": "school_certificate_email_processing",
+    "Label": "School Insurance Certificate Email Processing",
+    "System Modstamp": "2026-07-07T10:30:01.000+0000",
+    "Category": "Customer Service",
+    "Content": "Objective: Handle school insurance certificate requests received by email in the last 7 days.\n\nInstructions:\n1) Retrieve relevant email requests from the last week.\n2) For each contact, draft a confirmation response stating the request is being handled.\n3) Use CRM Assistant sub-agent and ask for approval before sending each email.\n4) Verify send status and report any delivery failure immediately.\n5) Create a high-priority reminder task due tomorrow to send the actual certificate.\n\nOutput format:\n- Requests processed\n- Emails drafted/sent\n- Failed sends (if any)\n- Reminder tasks created",
+    "Expected_ Result": "Customer acknowledgment emails are handled with approval control, send failures are flagged, and high-priority next-day reminder tasks are created.",
+    "Id": "m0CKB000000GrEX2A0"
+  },
+  {
+    "Developer Name": "manager_monthly_team_review",
+    "Label": "Manager Tool: Team Member Monthly Review",
+    "System Modstamp": "2026-07-07T07:14:16.000+0000",
+    "Category": "Productivity",
+    "Content": "Objective: Generate a targeted monthly performance review for one Relationship Manager.\n\nInstructions:\n1) List all users with role \"Relationship Manager\".\n2) Ask the manager to select one user.\n3) Analyze that user's activity over the previous month.\n4) Report key KPIs and major points of attention.\n\nOutput format:\n- Selected Relationship Manager\n- Monthly KPI dashboard\n- Key strengths\n- Points of attention and suggested actions",
+    "Expected_ Result": "The manager selects a Relationship Manager and receives a structured monthly review with KPIs, strengths, and attention points.",
+    "Id": "m0CKB000000GrJJ2A0"
+  },
+  {
+    "Developer Name": "post_meeting_crm_updates",
+    "Label": "Post-Meeting CRM Updates and Actions",
+    "System Modstamp": "2026-06-29T13:56:46.000+0000",
+    "Category": "Sales Management",
+    "Content": "Objective: Turn recent meetings into actionable CRM updates and tasks.\n\nInstructions:\n1) List the last 3 meetings (events) from today.\n2) Ask the user to choose one meeting.\n3) Analyze meeting content and generate:\n- A concise meeting summary\n- Required CRM updates\n- Tasks to create\n4) Ask for user approval before creating tasks.\n5) If approved, create tasks using CRM Assistant sub-agent.\n\nOutput format:\n- Selected meeting\n- Summary\n- CRM updates required\n- Proposed tasks\n- Task creation status",
+    "Expected_ Result": "A selected meeting is summarized into concrete CRM updates and tasks, with explicit user approval before task creation.",
+    "Id": "m0CKB000000GrJO2A0"
+  },
+  {
+    "Developer Name": "client_meeting_briefing_pack",
+    "Label": "Client Meeting Briefing Pack",
+    "System Modstamp": "2026-06-29T13:11:25.000+0000",
+    "Category": "Sales Management",
+    "Content": "Objective: Prepare pre-meeting briefs for today's client meetings.\n\nInstructions:\n1) For each client meeting scheduled today, create a one-page briefing including:\n- Client history\n- Current contracts\n- Recent claims\n- Past interactions\n- Identified cross-sell opportunities\n- Key watch-outs\n2) Add suggested discovery questions and recommended offers based on client profile.\n3) Compile all briefs into one document.\n4) Send the document by email 1 hour before the first meeting.\n5) Do not request confirmation before sending.\n\nOutput format:\n- Number of meetings briefed\n- Briefing document sent timestamp\n- Any missing data by client",
+    "Expected_ Result": "A consolidated pre-meeting briefing document is delivered 1 hour before the first meeting, with tailored opportunities and talking points per client.",
+    "Id": "m0CKB000000GrEl2AK"
+  },
+  {
+    "Developer Name": "outstanding_quote_follow_up",
+    "Label": "Outstanding Quote Follow-up",
+    "System Modstamp": "2026-06-18T09:45:01.000+0000",
+    "Category": "Sales Management",
+    "Content": "Objective: Increase conversion of quotes pending customer response.\n\nScope: Quotes sent more than 5 days ago with no customer reply.\n\nInstructions:\n1) Retrieve all eligible quotes.\n2) Draft a personalized follow-up email per quote that:\n- Recaps the offer\n- Highlights key coverage strengths\n- Proposes availability for Q&A\n3) Send emails immediately via CRM Assistant (no approval required).\n4) Create a follow-up call task due in 3 days for quotes above €2,000.\n5) Send a recap of all follow-ups performed.\n\nOutput format:\n- Quotes followed up\n- Emails sent\n- Call tasks created (> €2,000)\n- Follow-up recap",
+    "Expected_ Result": "Follow-up emails are sent for stale quotes, high-value quote call tasks are scheduled at D+3, and a recap of actions is provided.",
+    "Id": "m0CKB000000GrEn2AK"
+  },
+  {
+    "Developer Name": "commercial_portfolio_review",
+    "Label": "Commercial Portfolio Review",
+    "System Modstamp": "2026-07-07T16:11:05.000+0000",
+    "Category": "Productivity",
+    "Content": "Objective: Visualize insurance contracts by product type and premium value.\n\nInstructions:\n1) Use the tableau agent.\n2) Query Dataverse Insurance BOB DMO.\n3) Display contracts grouped by product type with associated premium totals and counts.\n4) Include overall totals and top-performing product categories.\n\nOutput format:\n- Table: product type, contract count, total premium\n- Highlights: top categories by premium",
+    "Expected_ Result": "A portfolio view is produced showing contracts by product type with premium aggregation and top category highlights.",
+    "Id": "m0CKB000000GrJT2A0"
+  },
+  {
+    "Developer Name": "post_claim_satisfaction_follow_up",
+    "Label": "Post-Claim Satisfaction Follow-up",
+    "System Modstamp": "2026-06-29T10:07:52.000+0000",
+    "Category": "Claims Management",
+    "Content": "Objective: Measure and improve customer satisfaction after claim closure.\n\nScope: All claims closed in the last 7 days.\n\nInstructions:\n1) Retrieve eligible closed claims.\n2) Send a satisfaction email asking customers to rate:\n- Quality of support\n- Processing speed\n- Clarity of communication\n3) Use an empathetic tone and remind customers the team remains available.\n4) Include satisfaction survey link when available.\n5) Send emails immediately via CRM Assistant (no approval required).\n6) For high-impact claims (amount > €5,000), create a reminder task for personal follow-up.\n\nOutput format:\n- Emails sent\n- Survey links included/missing\n- High-impact follow-up tasks created",
+    "Expected_ Result": "Post-claim satisfaction emails are sent automatically, survey links are included when available, and personal follow-up tasks are created for claims above €5,000.",
+    "Id": "m0CKB000000GrEo2AK"
+  },
+  {
+    "Developer Name": "multi_agent_orchestration",
+    "Label": "Multi-Agent Orchestration",
+    "System Modstamp": "2026-07-10T14:53:02.000+0000",
+    "Category": "Claims Management",
+    "Content": "Objective: Build a quick consolidated report for customer Annie Dubois using multiple agents.\n\nInstructions:\n1) Use the GED agent to list Annie Dubois' identity documents.\n2) Use the Solaris agent to retrieve Annie Dubois' claims.\n3) Produce a concise consolidated report with:\n- Identity documents found\n- Claims summary\n- Key risks or missing information\n- Recommended next action\n\nOutput format:\n- GED results\n- Solaris results\n- Consolidated summary",
+    "Expected_ Result": "GED and Solaris agent outputs are combined into a concise customer report with key findings and next actions.",
+    "Id": "m0CKB000000GrMy2AK"
+  }
+]
