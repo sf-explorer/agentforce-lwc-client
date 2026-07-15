@@ -1,26 +1,27 @@
 <apex:page
-    showHeader="true"
-    sidebar="true"
-    standardStylesheets="true"
-    docType="html-5.0">
-    <apex:includeLightning />
+  showHeader="true"
+  sidebar="true"
+  standardStylesheets="true"
+  docType="html-5.0"
+>
+  <apex:includeLightning />
 
-    <div id="agentforceClassicContainer" style="height: 760px;"></div>
+  <div id="agentforceClassicContainer" style="height: 760px"></div>
 
-    <script>
-        $Lightning.use("c:AgentforceClassicOutApp", function () {
-            $Lightning.createComponent(
-                "c:AgentforceChatHost",
-                {
-                    recordId: "{!$CurrentPage.parameters.id}",
-                    agentApiName: "CRM_Assistant",
-                    title: "Assistant",
-                    samplePrompts:
-                        "Summarize this account;Show open opportunities;Draft follow-up email"
-                },
-                "agentforceClassicContainer",
-                function () {}
-            );
-        });
-    </script>
+  <script>
+    $Lightning.use("c:AgentforceClassicOutApp", function () {
+      $Lightning.createComponent(
+        "c:AgentforceChatHost",
+        {
+          recordId: "{!$CurrentPage.parameters.id}",
+          agentApiName: "CRM_Assistant",
+          title: "Assistant",
+          samplePrompts:
+            "Summarize this account;Show open opportunities;Draft follow-up email"
+        },
+        "agentforceClassicContainer",
+        function () {}
+      );
+    });
+  </script>
 </apex:page>

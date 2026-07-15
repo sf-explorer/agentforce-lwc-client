@@ -1,0 +1,426 @@
+<template>
+  <div class="skills-container">
+    <!-- Create New Button -->
+
+    <template if:true={hasSkills}>
+      <template for:each={categories} for:item="categoryGroup">
+        <lightning-card
+          key={categoryGroup.category}
+          title={categoryGroup.category}
+          icon-name={categoryGroup.icon}
+          class="category-card"
+        >
+          <div class="slds-p-around_small">
+            <div class="slds-grid slds-wrap slds-gutters">
+              <template for:each={categoryGroup.skills} for:item="skill">
+                <div
+                  key={skill.Id}
+                  class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3"
+                  data-id={skill.Id}
+                  onclick={handleInfoClick}
+                >
+                  <div class="skill-card">
+                    <div class="skill-card-header">
+                      <h3 class="skill-title">{skill.MasterLabel}</h3>
+                      <lightning-icon
+                        icon-name="utility:salesforce1"
+                        size="small"
+                        alternative-text="View details"
+                        title="Salesforce Platform Agent"
+                      >
+                      </lightning-icon>
+                      <lightning-icon
+                        icon-name={skill.icon}
+                        size="small"
+                        alternative-text="View details"
+                        title="View details"
+                      >
+                      </lightning-icon>
+                    </div>
+                    <div class="skill-card-body">
+                      <button
+                        class="skill-clickable-area"
+                        data-content={skill.Content__c}
+                        aria-label={skill.MasterLabel}
+                      >
+                        <p class="skill-description">
+                          {skill.Expected_Result__c}
+                        </p>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+        </lightning-card>
+      </template>
+    </template>
+
+    <template if:true={error}>
+      <lightning-card title="Error" icon-name="utility:error">
+        <div class="slds-p-around_medium">
+          <div
+            class="slds-notify slds-notify_alert slds-alert_error"
+            role="alert"
+          >
+            <span class="slds-assistive-text">error</span>
+            <h2>Error loading skills: {error.body.message}</h2>
+          </div>
+        </div>
+      </lightning-card>
+    </template>
+
+    <template if:false={hasSkills}>
+      <template if:false={error}>
+        <lightning-card title="Co-worker Skills" icon-name="custom:custom78">
+          <div class="slds-p-around_large slds-text-align_center">
+            <lightning-icon
+              icon-name="utility:info"
+              size="medium"
+              variant="warning"
+            >
+            </lightning-icon>
+            <p class="slds-text-color_weak slds-m-top_small">
+              No skills configured yet.
+            </p>
+            <p
+              class="slds-text-body_small slds-text-color_weak slds-m-top_x-small"
+            >
+              Contact your administrator to add co-worker skills.
+            </p>
+          </div>
+        </lightning-card>
+      </template>
+    </template>
+  </div>
+
+  <!-- Modal for skill details -->
+  <template if:true={showModal}>
+    <section
+      role="dialog"
+      tabindex="-1"
+      aria-labelledby="modal-heading"
+      aria-modal="true"
+      class="slds-modal slds-fade-in-open"
+    >
+      <div class="slds-modal__container">
+        <button
+          class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+          title="Close"
+          onclick={closeModal}
+        >
+          <lightning-icon
+            icon-name="utility:close"
+            size="small"
+            alternative-text="Close"
+          >
+          </lightning-icon>
+          <span class="slds-assistive-text">Close</span>
+        </button>
+        <div class="slds-modal__header">
+          <h2
+            id="modal-heading"
+            class="slds-text-heading_medium slds-hyphenate"
+          >
+            {modalHeader}
+          </h2>
+        </div>
+        <div
+          class="slds-modal__content slds-p-around_medium"
+          id="modal-content"
+        >
+          <article
+            class="slds-box slds-box_small slds-theme_success slds-m-bottom_medium"
+          >
+            <h3 class="slds-text-heading_small slds-m-bottom_small">
+              <lightning-icon
+                icon-name="utility:success"
+                size="xx-small"
+                class="slds-m-right_xx-small"
+              >
+              </lightning-icon>
+              Expected Result
+            </h3>
+            <p class="slds-text-body_regular">{modalExpectedResult}</p>
+          </article>
+          <article class="slds-box slds-box_small">
+            <h3 class="slds-text-heading_small slds-m-bottom_small">
+              <lightning-icon
+                icon-name="utility:description"
+                size="xx-small"
+                class="slds-m-right_xx-small"
+              >
+              </lightning-icon>
+              Agent Prompt
+            </h3>
+            <p class="slds-text-body_small prompt-text">{modalContent}</p>
+          </article>
+        </div>
+        <div class="slds-modal__footer">
+          <lightning-button
+            variant="neutral"
+            label="Cancel"
+            onclick={closeModal}
+          >
+          </lightning-button>
+          <lightning-button
+            variant="brand"
+            label="Launch Agent"
+            icon-name="utility:forward"
+            icon-position="left"
+            onclick={handleModalAction}
+          >
+          </lightning-button>
+        </div>
+      </div>
+    </section>
+    <div class="slds-backdrop slds-backdrop_open" onclick={closeModal}></div>
+  </template>
+
+  <!-- Merge Variables Modal -->
+  <template if:true={showMergeVariablesModal}>
+    <section
+      role="dialog"
+      tabindex="-1"
+      aria-labelledby="merge-variables-heading"
+      aria-modal="true"
+      class="slds-modal slds-fade-in-open"
+    >
+      <div class="slds-modal__container">
+        <button
+          class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+          title="Close"
+          onclick={closeMergeVariablesModal}
+        >
+          <lightning-icon
+            icon-name="utility:close"
+            size="small"
+            alternative-text="Close"
+          >
+          </lightning-icon>
+          <span class="slds-assistive-text">Close</span>
+        </button>
+        <div class="slds-modal__header">
+          <h2 id="merge-variables-heading" class="slds-text-heading_medium">
+            <lightning-icon
+              icon-name="utility:merge_field"
+              size="small"
+              class="slds-m-right_x-small"
+            >
+            </lightning-icon>
+            Fill in the Variables
+          </h2>
+        </div>
+        <div
+          class="slds-modal__content slds-p-around_medium"
+          id="merge-variables-content"
+        >
+          <article
+            class="slds-box slds-box_small slds-theme_info slds-m-bottom_medium"
+          >
+            <p class="slds-text-body_small">
+              <lightning-icon
+                icon-name="utility:info"
+                size="xx-small"
+                class="slds-m-right_xx-small"
+              >
+              </lightning-icon>
+              This skill requires some information. Please fill in the fields
+              below.
+            </p>
+          </article>
+          <div class="slds-form" role="list">
+            <template for:each={mergeVariables} for:item="variable">
+              <div
+                key={variable.name}
+                class="slds-form-element slds-m-bottom_small"
+              >
+                <lightning-input
+                  label={variable.name}
+                  value={variable.value}
+                  data-variable={variable.name}
+                  onchange={handleMergeVariableChange}
+                  required
+                >
+                </lightning-input>
+              </div>
+            </template>
+          </div>
+        </div>
+        <div class="slds-modal__footer">
+          <lightning-button
+            variant="neutral"
+            label="Cancel"
+            onclick={closeMergeVariablesModal}
+          >
+          </lightning-button>
+          <lightning-button
+            variant="brand"
+            label="Launch Agent"
+            icon-name="utility:forward"
+            icon-position="left"
+            onclick={handleLaunchWithVariables}
+          >
+          </lightning-button>
+        </div>
+      </div>
+    </section>
+    <div
+      class="slds-backdrop slds-backdrop_open"
+      onclick={closeMergeVariablesModal}
+    ></div>
+  </template>
+
+  <!-- Create/Edit Skill Modal -->
+  <template if:true={showCreateModal}>
+    <section
+      role="dialog"
+      tabindex="-1"
+      aria-labelledby="create-modal-heading"
+      aria-modal="true"
+      class="slds-modal slds-fade-in-open slds-modal_large"
+    >
+      <div class="slds-modal__container">
+        <button
+          class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+          title="Close"
+          onclick={closeCreateModal}
+        >
+          <lightning-icon
+            icon-name="utility:close"
+            size="small"
+            alternative-text="Close"
+          >
+          </lightning-icon>
+          <span class="slds-assistive-text">Close</span>
+        </button>
+
+        <div
+          class="slds-modal__content slds-p-around_medium"
+          id="create-modal-content"
+        >
+          <!-- Step 1: Describe Intention -->
+          <article class="slds-box slds-box_small slds-m-bottom_medium">
+            <h3 class="slds-text-heading_small slds-m-bottom_small">
+              <span class="slds-badge slds-m-right_x-small">1</span>
+              Describe Your Intention
+            </h3>
+            <lightning-textarea
+              label="What do you want this skill to do?"
+              placeholder="Example: Je veux envoyer automatiquement des emails de relance aux clients qui n'ont pas renouvelé leur contrat..."
+              value={intention}
+              onchange={handleIntentionChange}
+              rows="3"
+            >
+            </lightning-textarea>
+            <lightning-combobox
+              label="Category"
+              value={selectedCategory}
+              placeholder="Select a category"
+              options={categoryOptions}
+              onchange={handleCategoryChange}
+              class="slds-m-top_small"
+            >
+            </lightning-combobox>
+            <lightning-button
+              variant="brand"
+              label="Generate Skill with AI"
+              icon-name="utility:einstein"
+              onclick={handleGenerateSkill}
+              disabled={canGenerate}
+              class="slds-m-top_medium"
+            >
+            </lightning-button>
+            <template if:true={isGenerating}>
+              <div class="slds-m-top_small">
+                <lightning-spinner
+                  alternative-text="Generating..."
+                  size="small"
+                >
+                </lightning-spinner>
+                <span class="slds-m-left_small"
+                  >AI is generating your skill...</span
+                >
+              </div>
+            </template>
+          </article>
+
+          <!-- Step 2: Review & Edit Generated Skill -->
+          <template if:true={hasGeneratedSkill}>
+            <article
+              class="slds-box slds-box_small slds-theme_success slds-m-bottom_medium"
+            >
+              <h3 class="slds-text-heading_small slds-m-bottom_small">
+                <span class="slds-badge slds-m-right_x-small">2</span>
+                Review & Edit Generated Skill
+              </h3>
+              <lightning-input
+                label="Skill Title"
+                value={generatedTitle}
+                onchange={handleTitleChange}
+                required
+              >
+              </lightning-input>
+              <lightning-input
+                label="Expected Result"
+                value={generatedExpectedResult}
+                onchange={handleExpectedResultChange}
+                class="slds-m-top_small"
+                max-length="255"
+              >
+              </lightning-input>
+              <lightning-textarea
+                label="Agent Prompt (Content)"
+                value={generatedContent}
+                onchange={handleContentChange}
+                rows="6"
+                class="slds-m-top_small"
+                required
+              >
+              </lightning-textarea>
+            </article>
+
+            <!-- Instructions -->
+            <article class="slds-box slds-box_small slds-theme_warning">
+              <h3 class="slds-text-heading_small slds-m-bottom_small">
+                <lightning-icon
+                  icon-name="utility:info"
+                  size="xx-small"
+                  class="slds-m-right_xx-small"
+                >
+                </lightning-icon>
+                Next Steps
+              </h3>
+              <p class="slds-text-body_small">
+                Click "Copy XML & Instructions" to get the metadata file
+                content. You'll need to create the file and deploy it to make
+                the skill available.
+              </p>
+            </article>
+          </template>
+        </div>
+        <div class="slds-modal__footer">
+          <lightning-button
+            variant="neutral"
+            label="Cancel"
+            onclick={closeCreateModal}
+          >
+          </lightning-button>
+          <lightning-button
+            variant="brand"
+            label="Copy XML & Instructions"
+            icon-name="utility:copy"
+            onclick={handleSaveSkill}
+            disabled={hasGeneratedSkill}
+          >
+          </lightning-button>
+        </div>
+      </div>
+    </section>
+    <div
+      class="slds-backdrop slds-backdrop_open"
+      onclick={closeCreateModal}
+    ></div>
+  </template>
+</template>

@@ -1,240 +1,291 @@
 <template>
-    <section class="agentforce-chat slds-card">
-        <template lwc:if={showHeader}>
-            <header class="agentforce-chat__header slds-card__header slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
-                <h2 class="slds-text-heading_small">{title}</h2>
-                <div class="agentforce-chat__header-actions slds-grid slds-grid_vertical-align-center">
-                    <template lwc:if={hasPreviousConversations}>
-                        <lightning-combobox
-                            class="agentforce-chat__conversation-picker slds-m-right_x-small"
-                            label="Conversation history"
-                            variant="label-hidden"
-                            value={activeConversationId}
-                            options={conversationOptions}
-                            onchange={handleConversationChange}
-                        ></lightning-combobox>
-                    </template>
-                    <lightning-button
-                        label="New Chat"
-                        title="Start a new conversation"
-                        variant="neutral"
-                        onclick={handleNewConversationClick}
-                    ></lightning-button>
-                    <lightning-button-icon
-                        icon-name="utility:delete"
-                        alternative-text="Delete selected chat"
-                        title="Delete selected chat"
-                        variant="border-filled"
-                        onclick={handleDeleteConversationClick}
-                        disabled={disabled}
-                        if:true={canDeleteConversation}
-                    ></lightning-button-icon>
-                </div>
-            </header>
-        </template>
-
-        <div class="agentforce-chat__messages slds-card__body slds-card__body_inner">
-            <template lwc:if={hasMessages}>
-                <template for:each={normalizedMessages} for:item="message">
-                    <article
-                        key={message.renderKey}
-                        class="agentforce-chat__message slds-media"
-                        data-role={message.role}
-                    >
-                        <template lwc:if={showAvatar}>
-                            <div class="slds-media__figure">
-                                <span class="agentforce-chat__avatar" title={message.role}>
-                                    <template lwc:if={message.isUser}>👤</template>
-                                    <template lwc:if={message.isAssistant}>🤖</template>
-                                    <template lwc:if={message.isSystem}>⚙️</template>
-                                </span>
-                            </div>
-                        </template>
-
-                        <div class="slds-media__body">
-                            <div class="agentforce-chat__bubble">
-                                <template lwc:if={message.useLinkifyText}>
-                                    <lightning-formatted-text
-                                        value={message.content}
-                                        linkify
-                                    ></lightning-formatted-text>
-                                </template>
-                                <template lwc:else>
-                                    <lightning-formatted-rich-text
-                                        value={message.renderedContent}
-                                    ></lightning-formatted-rich-text>
-                                </template>
-                            </div>
-                            <div class="agentforce-chat__meta">
-                                <lightning-formatted-date-time
-                                    value={message.timestamp}
-                                    year="numeric"
-                                    month="short"
-                                    day="2-digit"
-                                    hour="2-digit"
-                                    minute="2-digit"
-                                ></lightning-formatted-date-time>
-
-                                <template lwc:if={message.isAssistant}>
-                                    <lightning-button-icon
-                                        icon-name="utility:copy"
-                                        alternative-text="Copy message"
-                                        title="Copy message"
-                                        data-id={message.id}
-                                        onclick={handleCopyMessage}
-                                        variant="bare"
-                                        size="x-small"
-                                    ></lightning-button-icon>
-                                </template>
-                                <template lwc:if={message.hasResolvedContent}>
-                                    <button
-                                        class="agentforce-chat__resolved-status slds-button slds-button_reset"
-                                        type="button"
-                                        title={message.resolvedContent}
-                                        data-id={message.id}
-                                        onclick={handleResolvedPreviewClick}
-                                    >
-                                        Resolved
-                                    </button>
-                                </template>
-                            </div>
-
-                            <template lwc:if={message.hasCitations}>
-                                <ol class="agentforce-chat__citations">
-                                    <template for:each={message.citations} for:item="citation">
-                                        <li key={citation.id}>
-                                            <a href={citation.url} target="_blank" rel="noopener noreferrer">
-                                                {citation.title}
-                                            </a>
-                                        </li>
-                                    </template>
-                                </ol>
-                            </template>
-                        </div>
-                    </article>
-                </template>
-            </template>
-
-            <template lwc:if={isWaiting}>
-                <div class="agentforce-chat__typing slds-p-vertical_small">
-                    <lightning-spinner alternative-text="Assistant is thinking" size="small"></lightning-spinner>
-                    <span class="slds-m-left_small">Assistant is thinking...</span>
-                </div>
-            </template>
+  <section class="agentforce-chat slds-card" style={containerStyle}>
+    <template lwc:if={showHeader}>
+      <header
+        class="agentforce-chat__header slds-card__header slds-grid slds-grid_align-spread slds-grid_vertical-align-center"
+      >
+        <h2 class="slds-text-heading_small">{title}</h2>
+        <div
+          class="agentforce-chat__header-actions slds-grid slds-grid_vertical-align-center"
+        >
+          <template lwc:if={hasPreviousConversations}>
+            <lightning-combobox
+              class="agentforce-chat__conversation-picker slds-m-right_x-small"
+              label="Conversation history"
+              variant="label-hidden"
+              value={activeConversationId}
+              options={conversationOptions}
+              onchange={handleConversationChange}
+            ></lightning-combobox>
+          </template>
+          <lightning-button
+            label="New Chat"
+            title="Start a new conversation"
+            variant="neutral"
+            onclick={handleNewConversationClick}
+          ></lightning-button>
+          <lightning-button-icon
+            icon-name="utility:delete"
+            alternative-text="Delete selected chat"
+            title="Delete selected chat"
+            variant="border-filled"
+            onclick={handleDeleteConversationClick}
+            disabled={disabled}
+            if:true={canDeleteConversation}
+          ></lightning-button-icon>
         </div>
+      </header>
+    </template>
 
-        <template lwc:if={showSuggestions}>
-            <div class="agentforce-chat__suggestions slds-p-horizontal_medium slds-p-bottom_small">
-                <p class="slds-text-title_caps slds-m-bottom_x-small">Suggested prompts</p>
-                <div class="agentforce-chat__suggestion-list">
-                    <template for:each={parsedSuggestions} for:item="suggestion">
-                        <button
-                            key={suggestion}
-                            class="slds-button slds-button_neutral slds-m-right_x-small slds-m-bottom_x-small"
-                            data-value={suggestion}
-                            onclick={handleSuggestionClick}
-                            disabled={disabled}
-                        >
-                            {suggestion}
-                        </button>
-                    </template>
-                </div>
-            </div>
-        </template>
-
-        <footer class="agentforce-chat__composer slds-p-around_medium slds-border_top">
-            <lightning-textarea
-                value={draftMessage}
-                placeholder={placeholder}
-                disabled={disabled}
-                oninput={handleInput}
-                onchange={handleInput}
-                onkeydown={handleKeydown}
-                variant="label-hidden"
-                max-length="4000"
-            ></lightning-textarea>
-            <template lwc:if={showCommandAutocomplete}>
-                <div class="agentforce-chat__command-autocomplete slds-m-top_x-small" role="listbox">
-                    <template for:each={commandSuggestions} for:item="item">
-                        <button
-                            key={item.id}
-                            class="agentforce-chat__command-item slds-button slds-button_reset"
-                            type="button"
-                            data-command={item.command}
-                            aria-selected={item.isActive}
-                            onclick={handleCommandSuggestionClick}
-                        >
-                            <span class="agentforce-chat__command-name">{item.command}</span>
-                            <span class="agentforce-chat__command-description">{item.description}</span>
-                        </button>
-                    </template>
-                </div>
+    <div
+      class="agentforce-chat__messages slds-card__body slds-card__body_inner"
+    >
+      <template lwc:if={hasMessages}>
+        <template for:each={normalizedMessages} for:item="message">
+          <article
+            key={message.renderKey}
+            class="agentforce-chat__message slds-media"
+            data-role={message.role}
+          >
+            <template lwc:if={showAvatar}>
+              <div class="slds-media__figure">
+                <span class="agentforce-chat__avatar" title={message.role}>
+                  <template lwc:if={message.isUser}>👤</template>
+                  <template lwc:if={message.isAssistant}>🤖</template>
+                  <template lwc:if={message.isSystem}>⚙️</template>
+                </span>
+              </div>
             </template>
-            <template lwc:if={showSkillAutocomplete}>
-                <div class="agentforce-chat__command-autocomplete slds-m-top_x-small" role="listbox">
-                    <template for:each={mentionSuggestions} for:item="item">
-                        <button
-                            key={item.id}
-                            class="agentforce-chat__command-item slds-button slds-button_reset"
-                            type="button"
-                            data-label={item.label}
-                            aria-selected={item.isActive}
-                            onclick={handleSkillSuggestionClick}
-                        >
-                            <span class="agentforce-chat__command-name">{item.mention}</span>
-                            <span class="agentforce-chat__command-description">{item.description}</span>
-                        </button>
-                    </template>
-                </div>
-            </template>
-            <p class="agentforce-chat__command-hint slds-text-body_small slds-m-top_x-small">
-                {commandHintText}
-            </p>
 
-            <div class="agentforce-chat__actions slds-m-top_small slds-grid slds-grid_align-end">
-                <template lwc:if={canRetry}>
-                    <lightning-button
-                        class="slds-m-right_small"
-                        label="Retry"
-                        onclick={handleRetryClick}
-                        disabled={disabled}
-                        variant="neutral"
-                    ></lightning-button>
+            <div class="slds-media__body">
+              <div class="agentforce-chat__bubble">
+                <template lwc:if={message.useLinkifyText}>
+                  <lightning-formatted-text
+                    value={message.content}
+                    linkify
+                  ></lightning-formatted-text>
                 </template>
-                <lightning-button
-                    label="Send"
-                    onclick={handleSendClick}
-                    disabled={disabled}
-                    variant="brand"
-                ></lightning-button>
-            </div>
-        </footer>
+                <template lwc:elseif={useCustomMarkdownRenderer}>
+                  <c-markdown-viewer
+                    value={message.content}
+                  ></c-markdown-viewer>
+                </template>
+                <template lwc:else>
+                  <lightning-formatted-rich-text
+                    value={message.renderedContent}
+                  ></lightning-formatted-rich-text>
+                </template>
+              </div>
+              <div class="agentforce-chat__meta">
+                <lightning-formatted-date-time
+                  value={message.timestamp}
+                  year="numeric"
+                  month="short"
+                  day="2-digit"
+                  hour="2-digit"
+                  minute="2-digit"
+                ></lightning-formatted-date-time>
 
-        <template lwc:if={resolvedPreviewOpen}>
-            <section
-                role="dialog"
-                tabindex="-1"
-                aria-modal="true"
-                aria-label={resolvedPreviewTitle}
-                class="slds-modal slds-fade-in-open"
-            >
-                <div class="slds-modal__container">
-                    <header class="slds-modal__header">
-                        <h2 class="slds-modal__title slds-hyphenate">{resolvedPreviewTitle}</h2>
-                    </header>
-                    <div class="slds-modal__content slds-p-around_medium">
-                        <lightning-formatted-text value={resolvedPreviewText}></lightning-formatted-text>
-                    </div>
-                    <footer class="slds-modal__footer">
-                        <lightning-button
-                            label="Close"
-                            variant="brand"
-                            onclick={closeResolvedPreview}
-                        ></lightning-button>
-                    </footer>
-                </div>
-            </section>
-            <div class="slds-backdrop slds-backdrop_open"></div>
+                <template lwc:if={message.isAssistant}>
+                  <lightning-button-icon
+                    icon-name="utility:copy"
+                    alternative-text="Copy message"
+                    title="Copy message"
+                    data-id={message.id}
+                    onclick={handleCopyMessage}
+                    variant="bare"
+                    size="x-small"
+                  ></lightning-button-icon>
+                </template>
+                <template lwc:if={message.hasResolvedContent}>
+                  <button
+                    class="agentforce-chat__resolved-status slds-button slds-button_reset"
+                    type="button"
+                    title={message.resolvedContent}
+                    data-id={message.id}
+                    onclick={handleResolvedPreviewClick}
+                  >
+                    Resolved
+                  </button>
+                </template>
+              </div>
+
+              <template lwc:if={message.hasCitations}>
+                <ol class="agentforce-chat__citations">
+                  <template for:each={message.citations} for:item="citation">
+                    <li key={citation.id}>
+                      <a
+                        href={citation.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {citation.title}
+                      </a>
+                    </li>
+                  </template>
+                </ol>
+              </template>
+            </div>
+          </article>
         </template>
-    </section>
+      </template>
+
+      <template lwc:if={isWaiting}>
+        <div class="agentforce-chat__typing slds-p-vertical_small">
+          <lightning-spinner
+            alternative-text="Assistant is thinking"
+            size="small"
+          ></lightning-spinner>
+          <span class="slds-m-left_small">Assistant is thinking...</span>
+        </div>
+      </template>
+    </div>
+
+    <template lwc:if={showSuggestions}>
+      <div
+        class="agentforce-chat__suggestions slds-p-horizontal_medium slds-p-bottom_small"
+      >
+        <p class="slds-text-title_caps slds-m-bottom_x-small">
+          Suggested prompts
+        </p>
+        <div class="agentforce-chat__suggestion-list">
+          <template for:each={parsedSuggestions} for:item="suggestion">
+            <button
+              key={suggestion}
+              class="slds-button slds-button_neutral slds-m-right_x-small slds-m-bottom_x-small"
+              data-value={suggestion}
+              onclick={handleSuggestionClick}
+              disabled={disabled}
+            >
+              {suggestion}
+            </button>
+          </template>
+        </div>
+      </div>
+    </template>
+
+    <footer
+      class="agentforce-chat__composer slds-p-around_medium slds-border_top"
+    >
+      <lightning-textarea
+        value={draftMessage}
+        placeholder={placeholder}
+        disabled={disabled}
+        oninput={handleInput}
+        onchange={handleInput}
+        onkeydown={handleKeydown}
+        variant="label-hidden"
+        max-length="4000"
+      ></lightning-textarea>
+      <template lwc:if={showCommandAutocomplete}>
+        <div
+          class="agentforce-chat__command-autocomplete slds-m-top_x-small"
+          role="listbox"
+        >
+          <template for:each={commandSuggestions} for:item="item">
+            <button
+              key={item.id}
+              class="agentforce-chat__command-item slds-button slds-button_reset"
+              type="button"
+              data-command={item.command}
+              aria-selected={item.isActive}
+              onclick={handleCommandSuggestionClick}
+            >
+              <span class="agentforce-chat__command-name">{item.command}</span>
+              <span class="agentforce-chat__command-description"
+                >{item.description}</span
+              >
+            </button>
+          </template>
+        </div>
+      </template>
+      <template lwc:if={showSkillAutocomplete}>
+        <div
+          class="agentforce-chat__command-autocomplete slds-m-top_x-small"
+          role="listbox"
+        >
+          <template for:each={mentionSuggestions} for:item="item">
+            <button
+              key={item.id}
+              class="agentforce-chat__command-item slds-button slds-button_reset"
+              type="button"
+              data-label={item.label}
+              aria-selected={item.isActive}
+              onclick={handleSkillSuggestionClick}
+            >
+              <span class="agentforce-chat__command-name">{item.mention}</span>
+              <span class="agentforce-chat__command-description"
+                >{item.description}</span
+              >
+            </button>
+          </template>
+        </div>
+      </template>
+      <p
+        class="agentforce-chat__command-hint slds-text-body_small slds-m-top_x-small"
+      >
+        {commandHintText}
+      </p>
+      <div
+        class="agentforce-chat__actions slds-m-top_small slds-grid slds-grid_align-end"
+      >
+        <template lwc:if={canRetry}>
+          <lightning-button
+            class="slds-m-right_small"
+            label="Retry"
+            onclick={handleRetryClick}
+            disabled={disabled}
+            variant="neutral"
+          ></lightning-button>
+        </template>
+        <template lwc:if={voiceInputEnabled}>
+          <c-voice-input
+            class="slds-m-right_small"
+            disabled={isComposerDisabled}
+            language={voiceLanguage}
+            base-text={draftMessage}
+            ontranscript={handleVoiceTranscript}
+            onvoiceerror={handleVoiceError}
+          ></c-voice-input>
+        </template>
+        <lightning-button
+          label="Send"
+          onclick={handleSendClick}
+          disabled={disabled}
+          variant="brand"
+        ></lightning-button>
+      </div>
+    </footer>
+
+    <template lwc:if={resolvedPreviewOpen}>
+      <section
+        role="dialog"
+        tabindex="-1"
+        aria-modal="true"
+        aria-label={resolvedPreviewTitle}
+        class="slds-modal slds-fade-in-open"
+      >
+        <div class="slds-modal__container">
+          <header class="slds-modal__header">
+            <h2 class="slds-modal__title slds-hyphenate">
+              {resolvedPreviewTitle}
+            </h2>
+          </header>
+          <div class="slds-modal__content slds-p-around_medium">
+            <lightning-formatted-text
+              value={resolvedPreviewText}
+            ></lightning-formatted-text>
+          </div>
+          <footer class="slds-modal__footer">
+            <lightning-button
+              label="Close"
+              variant="brand"
+              onclick={closeResolvedPreview}
+            ></lightning-button>
+          </footer>
+        </div>
+      </section>
+      <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+  </section>
 </template>

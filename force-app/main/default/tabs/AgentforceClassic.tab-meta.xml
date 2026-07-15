@@ -1,6 +1,7 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <CustomTab xmlns="http://soap.sforce.com/2006/04/metadata">
-    <description>Agentforce Chat hosted in Visualforce for Classic.</description>
+    <description
+  >Agentforce Chat hosted in Visualforce for Classic.</description>
     <label>Agentforce Chat</label>
     <motif>Custom62: Chalkboard</motif>
     <page>AgentforceClassic</page>

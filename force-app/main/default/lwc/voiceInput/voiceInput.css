@@ -1,0 +1,23 @@
+:host {
+  display: inline-flex;
+}
+
+.voice-input {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.voice-input__status {
+  margin-top: 0.25rem;
+  color: var(--slds-g-color-neutral-base-50, #6b6d70);
+  font-size: 0.75rem;
+}
+
+.voice-input__status_error {
+  color: var(--slds-g-color-error-base-40, #ba0517);
+}
+
+.voice-input__retry {
+  margin-top: 0.15rem;
+}

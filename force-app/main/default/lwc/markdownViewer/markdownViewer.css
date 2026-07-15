@@ -1,0 +1,153 @@
+:host {
+  display: block;
+}
+
+.markdown-viewer__content {
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.markdown-viewer__content :where(h1, h2, h3, h4, h5, h6) {
+  margin: 0 0 0.5rem 0;
+  font-weight: 700;
+}
+
+.markdown-viewer__content p {
+  margin: 0 0 0.5rem 0;
+}
+
+.markdown-viewer__content :where(ul, ol) {
+  margin: 0 0 0.5rem 1.25rem;
+}
+
+.markdown-viewer__content blockquote {
+  margin: 0 0 0.5rem 0;
+  padding-left: 0.75rem;
+  border-left: 3px solid var(--slds-g-color-border-base-1, #d8dde6);
+  color: var(--slds-g-color-neutral-base-50, #6b6d70);
+}
+
+.markdown-viewer__content hr {
+  border: 0;
+  border-top: 1px solid var(--slds-g-color-border-base-1, #d8dde6);
+  margin: 0.75rem 0;
+}
+
+.markdown-viewer__content .markdown-viewer__section {
+  margin: 0 0 0.5rem 0;
+  border: 1px solid var(--slds-g-color-border-base-1, #d8dde6);
+  border-radius: 0.5rem;
+  background: var(--slds-g-color-neutral-base-100, #ffffff);
+}
+
+.markdown-viewer__content .markdown-viewer__section-summary {
+  cursor: pointer;
+  font-weight: 700;
+  padding: 0.5rem 0.75rem;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.markdown-viewer__content
+  .markdown-viewer__section-summary::-webkit-details-marker {
+  display: none;
+}
+
+.markdown-viewer__content .markdown-viewer__section-summary::before {
+  content: "▸";
+  color: var(--slds-g-color-neutral-base-50, #6b6d70);
+  font-size: 0.75rem;
+  line-height: 1;
+  transform: rotate(0deg);
+  transition: transform 120ms ease-in-out;
+}
+
+.markdown-viewer__content
+  .markdown-viewer__section[open]
+  .markdown-viewer__section-summary::before {
+  transform: rotate(90deg);
+}
+
+.markdown-viewer__content .markdown-viewer__section-body {
+  padding: 0.25rem 0.75rem 0.5rem;
+}
+
+.markdown-viewer__content :where(code, pre) {
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+}
+
+.markdown-viewer__content code {
+  background: var(--slds-g-color-neutral-base-95, #f3f3f3);
+  padding: 0.1rem 0.25rem;
+  border-radius: 0.25rem;
+}
+
+.markdown-viewer__content pre {
+  margin: 0 0 0.75rem 0;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  background: var(--slds-g-color-neutral-base-95, #f3f3f3);
+}
+
+.markdown-viewer__content pre code {
+  background: transparent;
+  padding: 0;
+}
+
+.markdown-viewer__content a {
+  color: var(--slds-g-color-brand-base-50, #0b5cab);
+  text-decoration: underline;
+}
+
+.markdown-viewer__content .markdown-viewer__record-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  text-decoration: none;
+}
+
+.markdown-viewer__content .markdown-viewer__record-link:hover {
+  text-decoration: underline;
+}
+
+.markdown-viewer__content .markdown-viewer__record-link-object {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--slds-g-color-border-base-1, #d8dde6);
+  border-radius: 999px;
+  background: var(--slds-g-color-neutral-base-95, #f3f3f3);
+  color: var(--slds-g-color-neutral-base-50, #6b6d70);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0.18rem 0.45rem;
+}
+
+.markdown-viewer__content .markdown-viewer__record-link-label {
+  text-decoration: underline;
+}
+
+.markdown-viewer__content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 0.75rem;
+  display: block;
+  overflow-x: auto;
+}
+
+.markdown-viewer__content :where(th, td) {
+  border: 1px solid var(--slds-g-color-border-base-1, #d8dde6);
+  padding: 0.5rem;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.markdown-viewer__content th {
+  background: var(--slds-g-color-neutral-base-95, #f3f3f3);
+  font-weight: 700;
+}

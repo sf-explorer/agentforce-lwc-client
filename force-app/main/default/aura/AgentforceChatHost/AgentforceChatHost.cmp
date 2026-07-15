@@ -1,14 +1,15 @@
 <aura:component access="GLOBAL">
-    <aura:attribute name="recordId" type="String" />
-    <aura:attribute name="agentApiName" type="String" default="CRM_Assistant" />
-    <aura:attribute name="title" type="String" default="Assistant" />
-    <aura:attribute name="samplePrompts" type="String" />
+  <aura:attribute name="recordId" type="String" />
+  <aura:attribute name="agentApiName" type="String" default="CRM_Assistant" />
+  <aura:attribute name="title" type="String" default="Assistant" />
+  <aura:attribute name="samplePrompts" type="String" />
 
-    <c:agentforceChat
-        recordId="{!v.recordId}"
-        agentApiName="{!v.agentApiName}"
-        title="{!v.title}"
-        samplePrompts="{!v.samplePrompts}"
-        showHeader="true">
-    </c:agentforceChat>
+  <c:agentforceChat
+    recordId="{!v.recordId}"
+    agentApiName="{!v.agentApiName}"
+    title="{!v.title}"
+    samplePrompts="{!v.samplePrompts}"
+    showHeader="true"
+  >
+  </c:agentforceChat>
 </aura:component>

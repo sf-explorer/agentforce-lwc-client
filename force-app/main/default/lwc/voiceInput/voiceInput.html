@@ -1,0 +1,27 @@
+<template>
+  <div class="voice-input">
+    <template lwc:if={canUseVoiceInput}>
+      <lightning-button-icon
+        icon-name={voiceButtonIconName}
+        alternative-text={voiceButtonTitle}
+        title={voiceButtonTitle}
+        onclick={handleVoiceToggle}
+        disabled={disabled}
+        variant="border-filled"
+      ></lightning-button-icon>
+    </template>
+
+    <template lwc:if={hasVoiceStatus}>
+      <p class={voiceStatusClass}>{voiceStatusText}</p>
+      <template lwc:if={showVoiceRetryAction}>
+        <lightning-button
+          class="voice-input__retry"
+          label="Try Again"
+          variant="base"
+          onclick={handleVoiceRetryClick}
+          disabled={disabled}
+        ></lightning-button>
+      </template>
+    </template>
+  </div>
+</template>

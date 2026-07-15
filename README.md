@@ -12,8 +12,9 @@ The UI is decoupled from direct REST calls. The component calls Apex, and Apex i
 - Suggested prompts, retry, copy assistant message, and auto-scroll.
 - Session persistence for uncontrolled mode (`sessionStorage`).
 - Public API methods: `sendMessage`, `clearConversation`, `focusInput`, `setSession`, `addSystemMessage`.
-- Events: `message`, `response`, `error`, `sessionchange`.
-- Markdown rendering with improved Salesforce record link UX.
+- Events: `message`, `response`, `error`, `sessionchange`, `voiceerror`.
+- Markdown rendering with renderer choice and richer formatting support.
+- Dedicated `c-voice-input` component for microphone capture with retry/error UX.
 - Apex response normalization and user-safe error mapping.
 
 ## Supported Features
@@ -51,9 +52,30 @@ The current component implementation supports:
 
 - **Rendering**
   - Plain text mode using `lightning-formatted-text` with `linkify`.
-  - Markdown mode rendering for common formatting (`**bold**`, `*italic*`, inline code, links, lists).
-  - Salesforce record-link friendly rendering in markdown mode.
+  - Markdown mode with renderer strategy:
+    - `richText`: `lightning-formatted-rich-text` compatibility renderer.
+    - `custom`: dedicated `c-markdown-viewer`.
+  - Custom markdown supports:
+    - headings, bold/italic, inline/fenced code
+    - ordered and unordered lists
+    - blockquotes
+    - horizontal rules (`---`, `***`, `___`)
+    - tables (GFM-style pipe tables)
+    - collapsible heading sections (enabled by default) with chevron indicators
+  - Salesforce record-link rendering:
+    - detects Lightning record URLs
+    - shows record chip-style links
+    - uses `NavigationMixin` (`standard__recordPage`) to keep navigation in-app/console-friendly
   - Citation list rendering when citations are present.
+
+- **Voice input**
+  - `agentforceChat` delegates microphone functionality to `c-voice-input`.
+  - Browser-native speech recognition with:
+    - secure-context and support checks
+    - actionable error messages (permission, network, language, device)
+    - automatic one-shot retry for transient network errors
+    - manual "Try Again" action
+  - Emits transcript updates to composer and forwards voice errors via `voiceerror`.
 
 - **Public API and events**
   - Methods: `sendMessage`, `clearConversation`, `focusInput`, `setSession`, `addSystemMessage`.
@@ -62,11 +84,27 @@ The current component implementation supports:
 ## Key Metadata
 
 - LWC bundle: `force-app/main/default/lwc/agentforceChat`
+- LWC bundle: `force-app/main/default/lwc/markdownViewer`
+- LWC bundle: `force-app/main/default/lwc/voiceInput`
 - Apex service: `force-app/main/default/classes/AgentforceService.cls`
 - Apex test: `force-app/main/default/classes/AgentforceServiceTest.cls`
 - Skills controller: `force-app/main/default/classes/CoworkerSkillsController.cls`
 - Skills metadata type: `Coworker_Skill__mdt`
 - LWC Jest test: `force-app/main/default/lwc/agentforceChat/__tests__/agentforceChat.test.js`
+- LWC Jest test: `force-app/main/default/lwc/markdownViewer/__tests__/markdownViewer.test.js`
+- LWC Jest test: `force-app/main/default/lwc/voiceInput/__tests__/voiceInput.test.js`
+
+## App Builder Configuration
+
+Common `c-agentforce-chat` properties used in recent updates:
+
+- `agentApiName` (required)
+- `markdownEnabled` (`true` to enable markdown rendering)
+- `markdownRenderer` (`custom` or `richText`)
+- `voiceInputEnabled` (`true` to show microphone capture)
+- `voiceLanguage` (for example `en-US`, `fr-FR`)
+- `minHeight` / `maxHeight` (CSS values like `auto`, `none`, `24rem`, `70vh`)
+- `showHeader`, `showAvatar`, `maxHistory`, `showCitations`
 
 ## Skills via Custom Metadata (`@mentions`)
 
@@ -185,9 +223,15 @@ sf project deploy start \
   --target-org "<org-alias>" \
   --source-dir "force-app/main/default/classes/AgentforceService.cls" \
   --source-dir "force-app/main/default/classes/AgentforceService.cls-meta.xml" \
+  --source-dir "force-app/main/default/classes/CoworkerSkillsController.cls" \
+  --source-dir "force-app/main/default/classes/CoworkerSkillsController.cls-meta.xml" \
+  --source-dir "force-app/main/default/objects/Coworker_Skill__mdt" \
+  --source-dir "force-app/main/default/layouts/Coworker_Skill__mdt-Coworker Skill Layout.layout-meta.xml" \
   --source-dir "force-app/main/default/classes/AgentforceServiceTest.cls" \
   --source-dir "force-app/main/default/classes/AgentforceServiceTest.cls-meta.xml" \
   --source-dir "force-app/main/default/lwc/agentforceChat" \
+  --source-dir "force-app/main/default/lwc/markdownViewer" \
+  --source-dir "force-app/main/default/lwc/voiceInput" \
   --wait 30 \
   --json
 ```
@@ -205,12 +249,14 @@ sf project deploy start \
   --json
 ```
 
-### 4) Deploy LWC bundle
+### 4) Deploy LWC bundles
 
 ```bash
 sf project deploy start \
   --target-org "<org-alias>" \
   --source-dir "force-app/main/default/lwc/agentforceChat" \
+  --source-dir "force-app/main/default/lwc/markdownViewer" \
+  --source-dir "force-app/main/default/lwc/voiceInput" \
   --wait 30 \
   --json
 ```
@@ -318,4 +364,3 @@ If you have ideas but not a full implementation, opening an issue with repro ste
 ## License
 
 This project is licensed under the MIT License. See `LICENSE` for details.
-
