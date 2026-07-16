@@ -204,6 +204,27 @@ Run Apex test in org:
 sf apex run test --target-org "<org-username-or-alias>" --tests "AgentforceServiceTest" --result-format json --code-coverage --wait 30
 ```
 
+## Install Unmanaged Package
+
+Install the unmanaged package directly in your org:
+
+- [Install Agentforce Chat package](https://login.salesforce.com/?ec=302&startURL=%2Fpackaging%2FinstallPackage.apexp%3Fp0%3D04tKB000000cdZC%26InstHostname%3Dlogin.salesforce.com)
+- [Install Agentforce Chat package (Sandbox)](https://test.salesforce.com/?ec=302&startURL=%2Fpackaging%2FinstallPackage.apexp%3Fp0%3D04tKB000000cdZC%26InstHostname%3Dtest.salesforce.com)
+
+After opening the link:
+
+1. Sign in with the org where you want to install the package.
+2. Review and accept the package access/security prompts.
+3. Choose install scope (recommended: **Install for Admins Only** first).
+4. Complete installation and wait for confirmation.
+
+### Use after install
+
+1. Open **Lightning App Builder** in the target org.
+2. Add **Agentforce Chat** (`c-agentforce-chat`) to the page.
+3. Set `agentApiName` to your Agentforce agent API name.
+4. Optionally configure prompts, markdown, voice input, and history settings.
+
 ## Deploy
 
 Use this sequence for predictable deployments.
