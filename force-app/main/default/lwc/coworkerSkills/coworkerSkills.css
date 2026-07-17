@@ -3,11 +3,24 @@
   display: grid;
   gap: 1rem;
   grid-template-columns: 1fr;
+  container-type: inline-size;
 }
 
 /* Category Cards */
 .category-card {
   margin-bottom: 0.5rem;
+}
+
+/* Skills Grid */
+.skills-grid {
+  display: grid;
+  gap: 0.75rem;
+  /* Fit as many cards as possible without squeezing readability. */
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+}
+
+.skill-grid-item {
+  min-width: 0;
 }
 
 /* Skill Card Container */
@@ -35,8 +48,9 @@
 /* Card Header */
 .skill-card-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  justify-content: flex-start;
+  align-items: flex-start;
+  gap: 0.5rem;
   padding: 1rem 1.25rem 0.75rem;
   border-bottom: 1px solid #f3f4f6;
 }
@@ -51,10 +65,6 @@
   overflow-wrap: break-word;
   flex: 1;
   min-width: 0;
-}
-
-.info-button {
-  flex-shrink: 0;
 }
 
 /* Card Body */
@@ -126,6 +136,12 @@
 
   .skill-clickable-area {
     padding: 0.875rem 1rem 1rem;
+  }
+}
+
+@container (max-width: 37rem) {
+  .skills-grid {
+    grid-template-columns: 1fr;
   }
 }
 

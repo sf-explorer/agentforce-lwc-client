@@ -219,12 +219,21 @@ export default class CoworkerSkills extends NavigationMixin(LightningElement) {
   }
 
   get categoryOptions() {
-    return [
-      { label: "Service Client", value: "Service Client" },
-      { label: "Gestion Commerciale", value: "Gestion Commerciale" },
-      { label: "Gestion des Sinistres", value: "Gestion des Sinistres" },
-      { label: "Productivité", value: "Productivité" }
-    ];
+    const categories = new Set(
+      (this.skills || []).map((skill) => skill.Category__c).filter(Boolean)
+    );
+
+    // Keep currently selected value visible even if dataset changed.
+    if (this.selectedCategory) {
+      categories.add(this.selectedCategory);
+    }
+
+    return Array.from(categories)
+      .sort((a, b) => a.localeCompare(b, "fr", { sensitivity: "base" }))
+      .map((category) => ({
+        label: category,
+        value: category
+      }));
   }
 
   get canGenerate() {

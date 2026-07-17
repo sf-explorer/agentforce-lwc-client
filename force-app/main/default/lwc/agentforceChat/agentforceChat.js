@@ -1,5 +1,6 @@
 import { LightningElement, api, track } from "lwc";
 import sendAgentMessage from "@salesforce/apex/AgentforceService.sendMessage";
+import getConfiguredAgents from "@salesforce/apex/AgentforceService.getConfiguredAgents";
 import getCoworkerSkills from "@salesforce/apex/CoworkerSkillsController.getSkills";
 
 const STATE = Object.freeze({
@@ -14,6 +15,7 @@ const STORAGE_PREFIX = "agentforce-chat-session";
 const HISTORY_STORAGE_PREFIX = "agentforce-chat-history";
 const HISTORY_INDEX_SUFFIX = "index";
 const ACTIVE_CONVERSATION_SUFFIX = "active";
+const SELECTED_AGENT_STORAGE_SUFFIX = "selected-agent";
 const COMMANDS = Object.freeze([
   { name: "help", description: "Show available commands" },
   { name: "clear", description: "Clear current conversation" },
@@ -27,7 +29,6 @@ const COMMANDS = Object.freeze([
 
 export default class AgentforceChat extends LightningElement {
   @api recordId;
-  @api agentApiName;
   @api sessionId;
   @api title = "Support Assistant";
   @api placeholder = "Type your message...";
@@ -51,6 +52,11 @@ export default class AgentforceChat extends LightningElement {
   @track messages = [];
   @track state = STATE.IDLE;
   @track conversations = [];
+  @track availableAgentOptions = [];
+  @track availableAgents = [];
+  @track isLoadingAgentOptions = false;
+  @track agentLoadErrorMessage = "";
+  @track isAgentSelectionOpen = false;
 
   draftMessage = "";
   hasInteracted = false;
@@ -64,9 +70,24 @@ export default class AgentforceChat extends LightningElement {
   resolvedPreviewTitle = "";
   localSessionId;
   activeConversationId;
+  _agentApiName = "";
+  selectedAgentApiName = "";
+
+  @api
+  get agentApiName() {
+    return this._agentApiName;
+  }
+
+  set agentApiName(value) {
+    this._agentApiName = (value || "").trim();
+    if (this._agentApiName) {
+      this.selectedAgentApiName = "";
+    }
+  }
 
   connectedCallback() {
     this.isConnected = true;
+    this.loadAvailableAgents();
     this.initializeSession();
     this.initializeHistory();
     this.initializeWelcomeMessage();
@@ -80,7 +101,10 @@ export default class AgentforceChat extends LightningElement {
   @api
   sendMessage(text, options = {}) {
     const trimmed = (text || "").trim();
-    if (!trimmed || this.disabled || this.isBusy) {
+    if (!trimmed || this.isComposerDisabled) {
+      if (!this.hasSelectedAgent) {
+        this.addSystemMessage("Select an agent before sending a message.");
+      }
       return;
     }
     if (this.handleSlashCommand(trimmed)) {
@@ -146,17 +170,15 @@ export default class AgentforceChat extends LightningElement {
   }
 
   get canSend() {
-    return !this.disabled && !this.isBusy && !this.isDraftBlank;
+    return !this.isComposerDisabled && !this.isDraftBlank;
   }
 
   get isComposerDisabled() {
-    return this.disabled || this.isBusy;
+    return this.disabled || this.isBusy || !this.hasSelectedAgent;
   }
 
   get canRetry() {
-    return (
-      !this.disabled && !this.isBusy && this.lastFailedUserMessage !== null
-    );
+    return !this.isComposerDisabled && this.lastFailedUserMessage !== null;
   }
 
   get isDraftBlank() {
@@ -165,6 +187,90 @@ export default class AgentforceChat extends LightningElement {
 
   get currentSessionId() {
     return this.mode === "controlled" ? this.sessionId : this.localSessionId;
+  }
+
+  get resolvedAgentApiName() {
+    return this.agentApiName || this.selectedAgentApiName || "";
+  }
+
+  get hasSelectedAgent() {
+    return Boolean(this.resolvedAgentApiName);
+  }
+
+  get shouldShowAgentPicker() {
+    if (this.agentApiName) {
+      return false;
+    }
+    if (!this.hasSelectedAgent || this.isLoadingAgentOptions) {
+      return true;
+    }
+    if (!this.hasAvailableAgents || this.agentLoadErrorMessage) {
+      return true;
+    }
+    return this.isAgentSelectionOpen;
+  }
+
+  get hasAvailableAgents() {
+    return this.availableAgentOptions.length > 0;
+  }
+
+  get showChangeAgentButton() {
+    return (
+      !this.agentApiName &&
+      this.hasSelectedAgent &&
+      this.hasAvailableAgents &&
+      !this.isLoadingAgentOptions &&
+      !this.isAgentSelectionOpen
+    );
+  }
+
+  get canCollapseAgentPicker() {
+    return this.hasSelectedAgent && this.hasAvailableAgents;
+  }
+
+  get selectedAgentDetails() {
+    if (!this.selectedAgentApiName) {
+      return null;
+    }
+    return (
+      this.availableAgents.find(
+        (agent) => agent.agentApiName === this.selectedAgentApiName
+      ) || null
+    );
+  }
+
+  get agentSelectionDescription() {
+    if (this.isLoadingAgentOptions) {
+      return "Loading configured agents...";
+    }
+    if (this.hasAvailableAgents) {
+      return `${this.availableAgentOptions.length} agent${
+        this.availableAgentOptions.length === 1 ? "" : "s"
+      } available.`;
+    }
+    return "No configured agents found.";
+  }
+
+  get featuredAgentOptions() {
+    return this.availableAgents.slice(0, 4).map((agent) => {
+      const displayLabel =
+        agent.label && agent.label !== agent.agentApiName
+          ? agent.label
+          : agent.agentApiName;
+      return {
+        value: agent.agentApiName,
+        inputId: `agentforce-chat-agent-${agent.agentApiName
+          .toLowerCase()
+          .replace(/[^a-z0-9_-]/g, "-")}`,
+        label: displayLabel,
+        description: agent.description,
+        isSelected: agent.agentApiName === this.selectedAgentApiName
+      };
+    });
+  }
+
+  get hasFeaturedAgentOptions() {
+    return this.featuredAgentOptions.length > 0;
   }
 
   get showSuggestions() {
@@ -202,6 +308,19 @@ export default class AgentforceChat extends LightningElement {
 
   get canDeleteConversation() {
     return Boolean(this.activeConversationId);
+  }
+
+  get currentAgentDisplayName() {
+    if (!this.hasSelectedAgent) {
+      return "";
+    }
+    const selected = this.availableAgents.find(
+      (agent) => agent.agentApiName === this.resolvedAgentApiName
+    );
+    if (selected?.label) {
+      return selected.label;
+    }
+    return this.resolvedAgentApiName;
   }
 
   get hasMessages() {
@@ -253,6 +372,70 @@ export default class AgentforceChat extends LightningElement {
         .filter((skill) => skill.label && skill.content);
     } catch {
       this.loadedSkills = [];
+    }
+  }
+
+  async loadAvailableAgents() {
+    if (!this.shouldShowAgentPicker) {
+      this.availableAgentOptions = [];
+      this.availableAgents = [];
+      return;
+    }
+    this.isLoadingAgentOptions = true;
+    this.agentLoadErrorMessage = "";
+    try {
+      const records = await getConfiguredAgents();
+      // eslint-disable-next-line no-console
+      console.log("[agentforceChat] getConfiguredAgents raw:", records);
+      this.availableAgents = Array.isArray(records)
+        ? records
+            .map((record) => ({
+              agentApiName: (record?.agentApiName || "").trim(),
+              label: (record?.label || "").trim(),
+              description: (record?.description || "").trim()
+            }))
+            .filter((record) => record.agentApiName.length > 0)
+        : [];
+      this.availableAgentOptions = this.availableAgents.map((agent) => ({
+        label:
+          agent.label && agent.label !== agent.agentApiName
+            ? `${agent.label} (${agent.agentApiName})`
+            : agent.agentApiName,
+        value: agent.agentApiName
+      }));
+      const values = this.availableAgents.map((agent) => agent.agentApiName);
+      if (values.length > 0) {
+        const storedAgent = this.readStoredSelectedAgent();
+        const nextSelectedAgent = values.includes(storedAgent)
+          ? storedAgent
+          : values.includes(this.selectedAgentApiName)
+            ? this.selectedAgentApiName
+            : values.includes("SearchAgent")
+              ? "SearchAgent"
+              : values[0];
+        this.selectAgent(nextSelectedAgent);
+      }
+      if (values.length === 0) {
+        this.agentLoadErrorMessage =
+          "No agents were returned by AgentforceService.getConfiguredAgents.";
+        this.isAgentSelectionOpen = true;
+      }
+    } catch (error) {
+      const message =
+        error?.body?.message ||
+        error?.message ||
+        "Unknown error while loading available agents.";
+      this.agentLoadErrorMessage = message;
+      // eslint-disable-next-line no-console
+      console.error(
+        "[agentforceChat] Failed to load available agents:",
+        JSON.parse(JSON.stringify(error || {}))
+      );
+      this.availableAgentOptions = [];
+      this.availableAgents = [];
+      this.isAgentSelectionOpen = true;
+    } finally {
+      this.isLoadingAgentOptions = false;
     }
   }
 
@@ -404,6 +587,46 @@ export default class AgentforceChat extends LightningElement {
     this.draftMessage = event.target.value;
     this.commandActiveIndex = 0;
     this.skillActiveIndex = 0;
+  }
+
+  handleAgentSelectionChange(event) {
+    const value = (event.detail?.value || "").trim();
+    this.selectAgent(value, { resetSession: true });
+  }
+
+  handleAgentQuickSelect(event) {
+    const value = (event.target?.value || "").trim();
+    if (!value) {
+      return;
+    }
+    this.selectAgent(value, { resetSession: true });
+  }
+
+  selectAgent(value, { resetSession = false } = {}) {
+    if (!value || value === this.selectedAgentApiName) {
+      return;
+    }
+    this.selectedAgentApiName = value;
+    this.persistSelectedAgent(value);
+    this.isAgentSelectionOpen = false;
+    if (resetSession) {
+      this.localSessionId = null;
+      this.persistSessionId(null);
+    }
+    this.initializeSession();
+    this.initializeHistory();
+    this.initializeWelcomeMessage();
+  }
+
+  handleOpenAgentSelection() {
+    this.isAgentSelectionOpen = true;
+  }
+
+  handleCloseAgentSelection() {
+    if (!this.canCollapseAgentPicker) {
+      return;
+    }
+    this.isAgentSelectionOpen = false;
   }
 
   handleKeydown(event) {
@@ -596,6 +819,10 @@ export default class AgentforceChat extends LightningElement {
   }
 
   async handleSend(text, options = {}) {
+    if (!this.hasSelectedAgent) {
+      this.addSystemMessage("Select an agent before sending a message.");
+      return;
+    }
     const clientRequestId = this.generateId("client");
     const skillResolution = this.resolveSkillMentions(text);
     const userMessage = this.appendMessage("user", text, {
@@ -616,7 +843,7 @@ export default class AgentforceChat extends LightningElement {
     try {
       this.state = STATE.WAITING;
       const response = await sendAgentMessage({
-        agentApiName: this.agentApiName,
+        agentApiName: this.resolvedAgentApiName,
         message: messageWithContext,
         sessionId: this.currentSessionId
       });
@@ -658,6 +885,7 @@ export default class AgentforceChat extends LightningElement {
       this.lastFailedUserMessage = null;
       this.state = STATE.IDLE;
     } catch (error) {
+      console.error(error);
       this.state = STATE.IDLE;
       this.lastFailedUserMessage = text;
       const parsedError = this.parseError(error);
@@ -727,7 +955,7 @@ export default class AgentforceChat extends LightningElement {
       case "/session":
         this.addSystemMessage(
           `Session: ${this.currentSessionId || "not set"} | Agent: ${
-            this.agentApiName || "not set"
+            this.resolvedAgentApiName || "not set"
           }`
         );
         return true;
@@ -958,7 +1186,7 @@ export default class AgentforceChat extends LightningElement {
   }
 
   storageKey() {
-    return `${STORAGE_PREFIX}:${this.agentApiName || "default"}`;
+    return `${STORAGE_PREFIX}:${this.resolvedAgentApiName || "default"}`;
   }
 
   persistSessionId(sessionId) {
@@ -980,17 +1208,41 @@ export default class AgentforceChat extends LightningElement {
   }
 
   historyStorageKey() {
-    return `${HISTORY_STORAGE_PREFIX}:${this.agentApiName || "default"}:${
+    return `${HISTORY_STORAGE_PREFIX}:${this.resolvedAgentApiName || "default"}:${
       this.activeConversationId || "default"
     }`;
   }
 
   historyIndexStorageKey() {
-    return `${HISTORY_STORAGE_PREFIX}:${this.agentApiName || "default"}:${HISTORY_INDEX_SUFFIX}`;
+    return `${HISTORY_STORAGE_PREFIX}:${this.resolvedAgentApiName || "default"}:${HISTORY_INDEX_SUFFIX}`;
   }
 
   activeConversationStorageKey() {
-    return `${HISTORY_STORAGE_PREFIX}:${this.agentApiName || "default"}:${ACTIVE_CONVERSATION_SUFFIX}`;
+    return `${HISTORY_STORAGE_PREFIX}:${this.resolvedAgentApiName || "default"}:${ACTIVE_CONVERSATION_SUFFIX}`;
+  }
+
+  selectedAgentStorageKey() {
+    return `${HISTORY_STORAGE_PREFIX}:${SELECTED_AGENT_STORAGE_SUFFIX}`;
+  }
+
+  persistSelectedAgent(agentApiName) {
+    if (!window?.sessionStorage) {
+      return;
+    }
+    if (agentApiName) {
+      window.sessionStorage.setItem(this.selectedAgentStorageKey(), agentApiName);
+    } else {
+      window.sessionStorage.removeItem(this.selectedAgentStorageKey());
+    }
+  }
+
+  readStoredSelectedAgent() {
+    if (!window?.sessionStorage) {
+      return "";
+    }
+    return (
+      window.sessionStorage.getItem(this.selectedAgentStorageKey()) || ""
+    ).trim();
   }
 
   persistActiveHistory() {
@@ -1029,7 +1281,7 @@ export default class AgentforceChat extends LightningElement {
       return null;
     }
     const raw = window.sessionStorage.getItem(
-      `${HISTORY_STORAGE_PREFIX}:${this.agentApiName || "default"}:${conversationId}`
+      `${HISTORY_STORAGE_PREFIX}:${this.resolvedAgentApiName || "default"}:${conversationId}`
     );
     if (!raw) {
       return null;
@@ -1045,7 +1297,7 @@ export default class AgentforceChat extends LightningElement {
     if (!window?.sessionStorage || !conversationId) {
       return;
     }
-    const key = `${HISTORY_STORAGE_PREFIX}:${this.agentApiName || "default"}:${conversationId}`;
+    const key = `${HISTORY_STORAGE_PREFIX}:${this.resolvedAgentApiName || "default"}:${conversationId}`;
     window.sessionStorage.removeItem(key);
   }
 

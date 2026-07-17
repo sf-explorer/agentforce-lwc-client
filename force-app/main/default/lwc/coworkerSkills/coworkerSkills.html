@@ -11,31 +11,27 @@
           class="category-card"
         >
           <div class="slds-p-around_small">
-            <div class="slds-grid slds-wrap slds-gutters">
+            <div class="skills-grid">
               <template for:each={categoryGroup.skills} for:item="skill">
                 <div
                   key={skill.Id}
-                  class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3"
+                  class="skill-grid-item"
                   data-id={skill.Id}
                   onclick={handleInfoClick}
                 >
                   <div class="skill-card">
                     <div class="skill-card-header">
                       <h3 class="skill-title">{skill.MasterLabel}</h3>
-                      <lightning-icon
-                        icon-name="utility:salesforce1"
-                        size="small"
-                        alternative-text="View details"
-                        title="Salesforce Platform Agent"
-                      >
-                      </lightning-icon>
-                      <lightning-icon
+                      <template if:true={skill.icon}>
+                        <lightning-icon
                         icon-name={skill.icon}
                         size="small"
                         alternative-text="View details"
                         title="View details"
                       >
                       </lightning-icon>
+                      </template>
+                     
                     </div>
                     <div class="skill-card-body">
                       <button

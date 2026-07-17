@@ -8,6 +8,9 @@
         <div
           class="agentforce-chat__header-actions slds-grid slds-grid_vertical-align-center"
         >
+          <span class="slds-badge slds-theme_lightest" if:true={hasSelectedAgent}>
+            Agent: {currentAgentDisplayName}
+          </span>
           <template lwc:if={hasPreviousConversations}>
             <lightning-combobox
               class="agentforce-chat__conversation-picker slds-m-right_x-small"
@@ -24,6 +27,13 @@
             variant="neutral"
             onclick={handleNewConversationClick}
           ></lightning-button>
+          <lightning-button
+            label="Change agent"
+            title="Change selected agent"
+            variant="neutral"
+            onclick={handleOpenAgentSelection}
+            if:true={showChangeAgentButton}
+          ></lightning-button>
           <lightning-button-icon
             icon-name="utility:delete"
             alternative-text="Delete selected chat"
@@ -35,6 +45,120 @@
           ></lightning-button-icon>
         </div>
       </header>
+    </template>
+
+    <template lwc:if={shouldShowAgentPicker}>
+      <section class="agentforce-chat__agent-selector slds-p-around_medium">
+        <div
+          class="agentforce-chat__agent-selector-head slds-grid slds-grid_vertical-align-center slds-grid_align-spread"
+        >
+          <div class="slds-grid slds-grid_vertical-align-center slds-gutters_x-small">
+            <div>
+              <lightning-icon
+                icon-name="utility:apps"
+                size="x-small"
+                alternative-text="Agent selection"
+              ></lightning-icon>
+            </div>
+            <div>
+              <p class="agentforce-chat__agent-selector-title">Choose an agent</p>
+              <p class="agentforce-chat__agent-selector-subtitle">
+                {agentSelectionDescription}
+              </p>
+            </div>
+          </div>
+          <lightning-button
+            label="Done"
+            title="Close agent selection"
+            variant="base"
+            onclick={handleCloseAgentSelection}
+            if:true={canCollapseAgentPicker}
+          ></lightning-button>
+        </div>
+
+        <template lwc:if={isLoadingAgentOptions}>
+          <div class="agentforce-chat__agent-loading">
+            <lightning-spinner
+              alternative-text="Loading agents"
+              size="small"
+            ></lightning-spinner>
+            <span class="slds-m-left_small">Loading available agents...</span>
+          </div>
+        </template>
+        <template lwc:elseif={hasAvailableAgents}>
+          <div class="agentforce-chat__agent-card slds-box slds-theme_default">
+            <lightning-combobox
+              name="agent-picker"
+              label="Available agents"
+              placeholder="Select an agent"
+              value={selectedAgentApiName}
+              options={availableAgentOptions}
+              onchange={handleAgentSelectionChange}
+              message-when-value-missing="Select an agent to start chatting."
+            ></lightning-combobox>
+
+            <template lwc:if={hasFeaturedAgentOptions}>
+              <div class="agentforce-chat__quick-select slds-m-top_small">
+                <p class="slds-text-title_caps slds-m-bottom_x-small">
+                  Quick select
+                </p>
+                <div
+                  class="agentforce-chat__quick-select-list slds-radio_button-group"
+                  role="radiogroup"
+                  aria-label="Quick select agent"
+                >
+                  <template for:each={featuredAgentOptions} for:item="agent">
+                    <span key={agent.value} class="slds-button slds-radio_button">
+                      <input
+                        type="radio"
+                        id={agent.inputId}
+                        name="agentforce-quick-select"
+                        value={agent.value}
+                        checked={agent.isSelected}
+                        onchange={handleAgentQuickSelect}
+                      />
+                      <label class="slds-radio_button__label" for={agent.inputId}>
+                        <span class="slds-radio_faux">{agent.label}</span>
+                      </label>
+                    </span>
+                  </template>
+                </div>
+              </div>
+            </template>
+          </div>
+          <template lwc:if={selectedAgentDetails}>
+            <div class="agentforce-chat__agent-details slds-m-top_small">
+              <p class="slds-text-title_caps">Selected agent</p>
+              <p class="agentforce-chat__agent-details-label">
+                {selectedAgentDetails.label}
+              </p>
+              <p
+                class="agentforce-chat__agent-details-description"
+                if:true={selectedAgentDetails.description}
+              >
+                {selectedAgentDetails.description}
+              </p>
+            </div>
+          </template>
+        </template>
+        <template lwc:else>
+          <div class="agentforce-chat__agent-empty slds-notify slds-notify_alert">
+            <span class="slds-assistive-text">Warning</span>
+            <lightning-icon
+              icon-name="utility:warning"
+              size="x-small"
+              alternative-text="Warning"
+              class="slds-m-right_x-small"
+            ></lightning-icon>
+            <span>No agent is configured.</span>
+            <template lwc:if={agentLoadErrorMessage}>
+              <p class="agentforce-chat__agent-error slds-m-top_x-small">
+                {agentLoadErrorMessage}
+              </p>
+            </template>
+          </div>
+        </template>
+      </section>
     </template>
 
     <div
@@ -155,7 +279,7 @@
               class="slds-button slds-button_neutral slds-m-right_x-small slds-m-bottom_x-small"
               data-value={suggestion}
               onclick={handleSuggestionClick}
-              disabled={disabled}
+              disabled={isComposerDisabled}
             >
               {suggestion}
             </button>
@@ -170,7 +294,7 @@
       <lightning-textarea
         value={draftMessage}
         placeholder={placeholder}
-        disabled={disabled}
+        disabled={isComposerDisabled}
         oninput={handleInput}
         onchange={handleInput}
         onkeydown={handleKeydown}
@@ -234,7 +358,7 @@
             class="slds-m-right_small"
             label="Retry"
             onclick={handleRetryClick}
-            disabled={disabled}
+            disabled={isComposerDisabled}
             variant="neutral"
           ></lightning-button>
         </template>
@@ -251,7 +375,7 @@
         <lightning-button
           label="Send"
           onclick={handleSendClick}
-          disabled={disabled}
+          disabled={isComposerDisabled}
           variant="brand"
         ></lightning-button>
       </div>

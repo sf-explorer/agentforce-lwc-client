@@ -61,6 +61,20 @@ public with sharing class AgentforceService {
   }
 
   /**
+   * Agent definition metadata exposed to the LWC picker.
+   */
+  public class AgentDefinitionOption {
+    @AuraEnabled
+    public String agentApiName;
+    @AuraEnabled
+    public String label;
+    @AuraEnabled
+    public String description;
+    @AuraEnabled
+    public Datetime lastModifiedDate;
+  }
+
+  /**
    * Internal normalized invocation result.
    */
   public class InvocationResult {
@@ -175,6 +189,138 @@ public with sharing class AgentforceService {
     } catch (Exception ex) {
       throw toAuraHandledException(ex);
     }
+  }
+
+  /**
+   * Returns agent definitions from BotDefinition metadata.
+   *
+   * @return List of configured agent definitions for picker UX.
+   */
+  @AuraEnabled(cacheable=true)
+  public static List<AgentDefinitionOption> getConfiguredAgents() {
+    List<BotDefinition> definitions = [
+      SELECT
+        Id,
+        DeveloperName,
+        MasterLabel,
+        Description,
+        LastModifiedDate,
+        AgentType
+      FROM BotDefinition
+      WHERE AgentType = 'AgentforceEmployeeAgent'
+      WITH USER_MODE
+      ORDER BY LastModifiedDate DESC
+      LIMIT 20
+    ];
+
+    List<AgentDefinitionOption> options = new List<AgentDefinitionOption>();
+    for (BotDefinition definition : definitions) {
+      AgentDefinitionOption option = new AgentDefinitionOption();
+      option.agentApiName = definition.DeveloperName;
+      option.label = String.isBlank(definition.MasterLabel)
+        ? definition.DeveloperName
+        : definition.MasterLabel;
+      option.description = definition.Description;
+      option.lastModifiedDate = definition.LastModifiedDate;
+      if (!String.isBlank(option.agentApiName)) {
+        options.add(option);
+      }
+    }
+    return options;
+  }
+
+  /**
+   * Returns available Agentforce agent API names.
+   *
+   * @return Unique sorted list of available agent API names.
+   */
+  @AuraEnabled
+  public static List<String> getConfiguredAgentApiNames() {
+    Set<String> uniqueNames = new Set<String>();
+    for (AgentDefinitionOption option : getConfiguredAgents()) {
+      if (option != null && !String.isBlank(option.agentApiName)) {
+        uniqueNames.add(option.agentApiName);
+      }
+    }
+    List<String> names = new List<String>(uniqueNames);
+    names.sort();
+    return names;
+  }
+
+  @TestVisible
+  private static Map<String, Object> buildActionInputs(
+    String agentApiName,
+    String userMessage,
+    String sessionId
+  ) {
+    Map<String, Object> input = new Map<String, Object>{
+      'agentName' => agentApiName,
+      'userMessage' => userMessage
+    };
+    if (!String.isBlank(sessionId)) {
+      input.put('sessionId', sessionId);
+    }
+    return new Map<String, Object>{ 'inputs' => new List<Object>{ input } };
+  }
+
+  @TestVisible
+  private static Map<String, Object> extractOutputFromRestResponse(
+    String responseBody
+  ) {
+    if (String.isBlank(responseBody)) {
+      throw new AgentforceServiceException('Agentforce invocation returned empty response.');
+    }
+
+    Object raw = JSON.deserializeUntyped(responseBody);
+    if (!(raw instanceof Map<String, Object>)) {
+      throw new AgentforceServiceException('Unexpected Agentforce response format.');
+    }
+
+    Map<String, Object> body = (Map<String, Object>) raw;
+    Object resultsObject = body.get('results');
+    if (!(resultsObject instanceof List<Object>)) {
+      throw new AgentforceServiceException('Agentforce response missing results.');
+    }
+
+    List<Object> results = (List<Object>) resultsObject;
+    if (results.isEmpty() || !(results[0] instanceof Map<String, Object>)) {
+      throw new AgentforceServiceException('Agentforce response contains no result item.');
+    }
+
+    Map<String, Object> firstResult = (Map<String, Object>) results[0];
+    Object successValue = firstResult.get('isSuccess');
+    if (successValue != null && !(Boolean) successValue) {
+      String errorMessage = safeToString(firstResult.get('message'));
+      if (String.isBlank(errorMessage)) {
+        errorMessage = safeToString(firstResult.get('errorMessage'));
+      }
+      if (String.isBlank(errorMessage)) {
+        errorMessage = 'Agentforce invocation failed.';
+      }
+      throw new AgentforceServiceException(errorMessage);
+    }
+
+    if (firstResult.get('outputValues') instanceof Map<String, Object>) {
+      return (Map<String, Object>) firstResult.get('outputValues');
+    }
+
+    Map<String, Object> passthrough = new Map<String, Object>();
+    if (firstResult.get('response') != null) {
+      passthrough.put('response', firstResult.get('response'));
+    }
+    if (firstResult.get('agentResponse') != null) {
+      passthrough.put('agentResponse', firstResult.get('agentResponse'));
+    }
+    if (firstResult.get('sessionId') != null) {
+      passthrough.put('sessionId', firstResult.get('sessionId'));
+    }
+    if (firstResult.get('requestId') != null) {
+      passthrough.put('requestId', firstResult.get('requestId'));
+    }
+    if (firstResult.get('citations') != null) {
+      passthrough.put('citations', firstResult.get('citations'));
+    }
+    return passthrough;
   }
 
   @TestVisible
@@ -367,4 +513,5 @@ public with sharing class AgentforceService {
       return null;
     }
   }
+
 }

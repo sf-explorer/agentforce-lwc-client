@@ -105,4 +105,35 @@ private class AgentforceServiceTest {
     System.assertNotEquals(null, code);
     System.assertNotEquals(null, AgentforceService.isRetryableCode(code));
   }
+
+  @IsTest
+  static void buildActionInputs_includesExpectedFields() {
+    Map<String, Object> payload = AgentforceService.buildActionInputs(
+      'Support_Agent',
+      'Hello',
+      'SESSION-1'
+    );
+    System.assertNotEquals(null, payload);
+    System.assert(payload.containsKey('inputs'));
+
+    List<Object> inputs = (List<Object>) payload.get('inputs');
+    System.assertEquals(1, inputs.size());
+    Map<String, Object> first = (Map<String, Object>) inputs[0];
+    System.assertEquals('Support_Agent', first.get('agentName'));
+    System.assertEquals('Hello', first.get('userMessage'));
+    System.assertEquals('SESSION-1', first.get('sessionId'));
+  }
+
+  @IsTest
+  static void extractOutputFromRestResponse_readsOutputValues() {
+    String responseBody =
+      '{"results":[{"isSuccess":true,"outputValues":{"response":"Hi","sessionId":"S1","requestId":"R1"}}]}';
+    Map<String, Object> output = AgentforceService.extractOutputFromRestResponse(
+      responseBody
+    );
+    System.assertEquals('Hi', output.get('response'));
+    System.assertEquals('S1', output.get('sessionId'));
+    System.assertEquals('R1', output.get('requestId'));
+  }
+
 }

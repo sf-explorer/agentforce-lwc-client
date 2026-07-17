@@ -9,6 +9,7 @@ The UI is decoupled from direct REST calls. The component calls Apex, and Apex i
 ## Implemented Features
 
 - Reusable chat UI with conversation history and loading state.
+- Dynamic agent selection UI backed by configured `BotDefinition` metadata.
 - Suggested prompts, retry, copy assistant message, and auto-scroll.
 - Session persistence for uncontrolled mode (`sessionStorage`).
 - Public API methods: `sendMessage`, `clearConversation`, `focusInput`, `setSession`, `addSystemMessage`.
@@ -24,6 +25,14 @@ The current component implementation supports:
 - **Agent invocation via Apex facade**
   - No direct LWC REST callouts to Agentforce.
   - Invokes Agentforce using `Invocable.Action.createCustomAction(...)`.
+  - Exposes `getConfiguredAgents()` to drive the LWC agent picker from `BotDefinition`.
+  - Exposes `getConfiguredAgentApiNames()` for lightweight validation/verification flows.
+
+- **Agent selection UX**
+  - `agentApiName` can be preconfigured or selected at runtime from available agents.
+  - Optional collapsible picker section with agent details (label, description, freshness by `LastModifiedDate`).
+  - Prevents message send until an agent is selected, with user-safe system guidance.
+  - Persists selected agent and conversation/session history using the resolved selected agent key.
 
 - **Conversation UX**
   - Send message with keyboard shortcut (`Enter`) and send button.
@@ -81,6 +90,11 @@ The current component implementation supports:
   - Methods: `sendMessage`, `clearConversation`, `focusInput`, `setSession`, `addSystemMessage`.
   - Events: `message`, `response`, `error`, `sessionchange`.
 
+- **Coworker skills discovery UX**
+  - Category filter options are generated dynamically from loaded skill metadata.
+  - Cards render in a responsive grid using container queries for better App Builder embedding.
+  - Category card icon rendering is data-driven (`skill.icon`) and omitted when unavailable.
+
 ## Key Metadata
 
 - LWC bundle: `force-app/main/default/lwc/agentforceChat`
@@ -98,7 +112,7 @@ The current component implementation supports:
 
 Common `c-agentforce-chat` properties used in recent updates:
 
-- `agentApiName` (required)
+- `agentApiName` (optional preselection; can be chosen from configured agents at runtime)
 - `markdownEnabled` (`true` to enable markdown rendering)
 - `markdownRenderer` (`custom` or `richText`)
 - `voiceInputEnabled` (`true` to show microphone capture)
@@ -208,8 +222,8 @@ sf apex run test --target-org "<org-username-or-alias>" --tests "AgentforceServi
 
 Install the unmanaged package directly in your org:
 
-- [Install Agentforce Chat package](https://login.salesforce.com/?ec=302&startURL=%2Fpackaging%2FinstallPackage.apexp%3Fp0%3D04tKB000000cdZC%26InstHostname%3Dlogin.salesforce.com)
-- [Install Agentforce Chat package (Sandbox)](https://test.salesforce.com/?ec=302&startURL=%2Fpackaging%2FinstallPackage.apexp%3Fp0%3D04tKB000000cdZC%26InstHostname%3Dtest.salesforce.com)
+- [Install Agentforce Chat package](https://login.salesforce.com/?ec=302&startURL=%2Fpackaging%2FinstallPackage.apexp%3Fp0%3D04tKB000000cdy3%26InstHostname%3Dlogin.salesforce.com)
+- [Install Agentforce Chat package (Sandbox)](https://test.salesforce.com/?ec=302&startURL=%2Fpackaging%2FinstallPackage.apexp%3Fp0%3D04tKB000000cdy3%26InstHostname%3Dtest.salesforce.com)
 
 After opening the link:
 
@@ -337,6 +351,7 @@ These helper scripts are included under `scripts/`:
 
 - `verifyAgentforceService.apex`
 - `verifyAgentforceInvoker.apex`
+- `verifyGetConfiguredAgentApiNames.apex`
 - `inspectInvocableResult.apex`
 
 Example:
