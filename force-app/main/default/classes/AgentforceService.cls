@@ -268,23 +268,31 @@ public with sharing class AgentforceService {
     String responseBody
   ) {
     if (String.isBlank(responseBody)) {
-      throw new AgentforceServiceException('Agentforce invocation returned empty response.');
+      throw new AgentforceServiceException(
+        'Agentforce invocation returned empty response.'
+      );
     }
 
     Object raw = JSON.deserializeUntyped(responseBody);
     if (!(raw instanceof Map<String, Object>)) {
-      throw new AgentforceServiceException('Unexpected Agentforce response format.');
+      throw new AgentforceServiceException(
+        'Unexpected Agentforce response format.'
+      );
     }
 
     Map<String, Object> body = (Map<String, Object>) raw;
     Object resultsObject = body.get('results');
     if (!(resultsObject instanceof List<Object>)) {
-      throw new AgentforceServiceException('Agentforce response missing results.');
+      throw new AgentforceServiceException(
+        'Agentforce response missing results.'
+      );
     }
 
     List<Object> results = (List<Object>) resultsObject;
     if (results.isEmpty() || !(results[0] instanceof Map<String, Object>)) {
-      throw new AgentforceServiceException('Agentforce response contains no result item.');
+      throw new AgentforceServiceException(
+        'Agentforce response contains no result item.'
+      );
     }
 
     Map<String, Object> firstResult = (Map<String, Object>) results[0];
@@ -513,5 +521,4 @@ public with sharing class AgentforceService {
       return null;
     }
   }
-
 }

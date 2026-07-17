@@ -50,7 +50,8 @@ function buildSkillMarkdown(skill) {
   const category = skill.Category || "Uncategorized";
   const updatedAt = skill["System Modstamp"] || "Unknown";
   const content = skill.Content || "_No prompt content provided._";
-  const expectedResult = skill["Expected_ Result"] || "_No expected result provided._";
+  const expectedResult =
+    skill["Expected_ Result"] || "_No expected result provided._";
 
   return `---
 title: "${label.replace(/"/g, '\\"')}"
@@ -135,7 +136,9 @@ function buildIndexMarkdown(indexData) {
     lines.push("| Skill | What to expect |");
     lines.push("| --- | --- |");
     for (const item of indexData[category]) {
-      lines.push(`| [${item.label}](${item.relativePath}) | ${item.expectedResult} |`);
+      lines.push(
+        `| [${item.label}](${item.relativePath}) | ${item.expectedResult} |`
+      );
     }
     lines.push("");
   }
@@ -169,10 +172,12 @@ function main() {
     indexData[category].push({
       label: skill.Label || titleFromSlug(skillSlug),
       relativePath: `./${categorySlug}/${skillFileName}`,
-      expectedResult: (skill["Expected_ Result"] || "No expected result provided.")
+      expectedResult: (
+        skill["Expected_ Result"] || "No expected result provided."
+      )
         .replace(/\r?\n/g, " ")
         .replace(/\|/g, "\\|")
-        .trim(),
+        .trim()
     });
   }
 
@@ -181,11 +186,19 @@ function main() {
   }
 
   writeFile(path.join(outputRoot, "index.md"), buildIndexMarkdown(indexData));
-  writeFile(path.join(outputRoot, "prompting-readme.md"), buildPromptingReadme());
+  writeFile(
+    path.join(outputRoot, "prompting-readme.md"),
+    buildPromptingReadme()
+  );
 
-  const fileCount = Object.values(indexData).reduce((acc, list) => acc + list.length, 0);
+  const fileCount = Object.values(indexData).reduce(
+    (acc, list) => acc + list.length,
+    0
+  );
   const categoryCount = Object.keys(indexData).length;
-  console.log(`Generated ${fileCount} skill markdown files in ${categoryCount} categories.`);
+  console.log(
+    `Generated ${fileCount} skill markdown files in ${categoryCount} categories.`
+  );
   console.log(`Created: ${path.join(outputRoot, "index.md")}`);
   console.log(`Created: ${path.join(outputRoot, "prompting-readme.md")}`);
 }

@@ -1230,7 +1230,10 @@ export default class AgentforceChat extends LightningElement {
       return;
     }
     if (agentApiName) {
-      window.sessionStorage.setItem(this.selectedAgentStorageKey(), agentApiName);
+      window.sessionStorage.setItem(
+        this.selectedAgentStorageKey(),
+        agentApiName
+      );
     } else {
       window.sessionStorage.removeItem(this.selectedAgentStorageKey());
     }

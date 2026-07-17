@@ -3,6 +3,8 @@
     <apiVersion>67.0</apiVersion>
     <isExposed>true</isExposed>
     <masterLabel>Agentforce Chat</masterLabel>
+    <description
+  >Configurable Agentforce chat interface for Lightning pages and utility bar.</description>
     <targets>
         <target>lightning__AppPage</target>
         <target>lightning__HomePage</target>

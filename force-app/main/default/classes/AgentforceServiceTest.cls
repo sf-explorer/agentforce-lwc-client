@@ -126,8 +126,7 @@ private class AgentforceServiceTest {
 
   @IsTest
   static void extractOutputFromRestResponse_readsOutputValues() {
-    String responseBody =
-      '{"results":[{"isSuccess":true,"outputValues":{"response":"Hi","sessionId":"S1","requestId":"R1"}}]}';
+    String responseBody = '{"results":[{"isSuccess":true,"outputValues":{"response":"Hi","sessionId":"S1","requestId":"R1"}}]}';
     Map<String, Object> output = AgentforceService.extractOutputFromRestResponse(
       responseBody
     );
@@ -135,5 +134,4 @@ private class AgentforceServiceTest {
     System.assertEquals('S1', output.get('sessionId'));
     System.assertEquals('R1', output.get('requestId'));
   }
-
 }

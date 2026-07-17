@@ -2,6 +2,40 @@
 
 This project contains a reusable Lightning Web Component (`c-agentforce-chat`) and Apex facade (`AgentforceService`) for embedding an Agentforce chat experience anywhere in Lightning Experience.
 
+## Introduction
+
+Welcome to prompt engineering. In Agentforce experiences, outcome quality depends on two levers more than anything else: strong reusable skills and a well-crafted prompt. Skills package domain know-how and business rules into repeatable building blocks that can be user-specific or shared across teams, while a good prompt gives the agent clear intent, constraints, and expected output format. Together, they reduce ambiguity, improve consistency, and minimize hallucinations in production workflows.
+
+**Example**
+
+Instead of prompting:
+
+> "Help me with this customer case."
+
+Use a skill-aware, structured prompt:
+
+> @manage-customer-complaints For `recordId` {CASE_ID}, act as a senior claims/customer-service specialist.  
+> Classify the issue type and urgency, then produce:
+>
+> 1. Root cause hypothesis (with confidence % and missing data needed to confirm),
+> 2. Top 3 next actions ranked by business impact and effort,
+> 3. A French customer response email (empathetic, compliant, no legal admission, clear next step + ETA),
+> 4. A short internal CRM note in English for the account owner,
+> 5. Risk flags (regulatory, SLA breach, churn risk) with mitigation actions.  
+>    Keep output concise with headings and bullets. If data is missing, state assumptions explicitly instead of inventing facts.
+
+The second version performs better because it combines scoped expertise and business rules (`@skill`) with explicit instructions for context (`recordId`), deliverables, language, tone, compliance guardrails, and anti-hallucination behavior.
+
+**TL;DR (why this repo exists):**
+
+- This repo provides a practical Agentforce client pattern for Salesforce teams.
+- It shows how to connect LWC UI, Apex orchestration, and metadata-driven skills into one reusable solution.
+- The goal is to make high-quality, governed agent interactions easy to deploy, reuse, and evolve.
+- Skills catalog: [Skills Index](./skills/index.md)
+- Prompting guide: [Skills Prompting README](./skills/prompting-readme.md)
+
+You can also quickly deploy the unmanaged app from this repository to get a working baseline and start customizing immediately (see [One-command deploy (recommended)](#one-command-deploy-recommended)).
+
 ![LWC Client](./lwc-client.png)
 
 The UI is decoupled from direct REST calls. The component calls Apex, and Apex invokes Agentforce through `Invocable.Action.createCustomAction(...)`.
@@ -98,15 +132,12 @@ The current component implementation supports:
 ## Key Metadata
 
 - LWC bundle: `force-app/main/default/lwc/agentforceChat`
+- LWC bundle: `force-app/main/default/lwc/coworkerSkills`
 - LWC bundle: `force-app/main/default/lwc/markdownViewer`
 - LWC bundle: `force-app/main/default/lwc/voiceInput`
 - Apex service: `force-app/main/default/classes/AgentforceService.cls`
-- Apex test: `force-app/main/default/classes/AgentforceServiceTest.cls`
 - Skills controller: `force-app/main/default/classes/CoworkerSkillsController.cls`
 - Skills metadata type: `Coworker_Skill__mdt`
-- LWC Jest test: `force-app/main/default/lwc/agentforceChat/__tests__/agentforceChat.test.js`
-- LWC Jest test: `force-app/main/default/lwc/markdownViewer/__tests__/markdownViewer.test.js`
-- LWC Jest test: `force-app/main/default/lwc/voiceInput/__tests__/voiceInput.test.js`
 
 ## App Builder Configuration
 

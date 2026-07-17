@@ -8,7 +8,10 @@
         <div
           class="agentforce-chat__header-actions slds-grid slds-grid_vertical-align-center"
         >
-          <span class="slds-badge slds-theme_lightest" if:true={hasSelectedAgent}>
+          <span
+            class="slds-badge slds-theme_lightest"
+            if:true={hasSelectedAgent}
+          >
             Agent: {currentAgentDisplayName}
           </span>
           <template lwc:if={hasPreviousConversations}>
@@ -52,7 +55,9 @@
         <div
           class="agentforce-chat__agent-selector-head slds-grid slds-grid_vertical-align-center slds-grid_align-spread"
         >
-          <div class="slds-grid slds-grid_vertical-align-center slds-gutters_x-small">
+          <div
+            class="slds-grid slds-grid_vertical-align-center slds-gutters_x-small"
+          >
             <div>
               <lightning-icon
                 icon-name="utility:apps"
@@ -61,7 +66,9 @@
               ></lightning-icon>
             </div>
             <div>
-              <p class="agentforce-chat__agent-selector-title">Choose an agent</p>
+              <p class="agentforce-chat__agent-selector-title">
+                Choose an agent
+              </p>
               <p class="agentforce-chat__agent-selector-subtitle">
                 {agentSelectionDescription}
               </p>
@@ -108,7 +115,10 @@
                   aria-label="Quick select agent"
                 >
                   <template for:each={featuredAgentOptions} for:item="agent">
-                    <span key={agent.value} class="slds-button slds-radio_button">
+                    <span
+                      key={agent.value}
+                      class="slds-button slds-radio_button"
+                    >
                       <input
                         type="radio"
                         id={agent.inputId}
@@ -117,7 +127,10 @@
                         checked={agent.isSelected}
                         onchange={handleAgentQuickSelect}
                       />
-                      <label class="slds-radio_button__label" for={agent.inputId}>
+                      <label
+                        class="slds-radio_button__label"
+                        for={agent.inputId}
+                      >
                         <span class="slds-radio_faux">{agent.label}</span>
                       </label>
                     </span>
@@ -142,7 +155,9 @@
           </template>
         </template>
         <template lwc:else>
-          <div class="agentforce-chat__agent-empty slds-notify slds-notify_alert">
+          <div
+            class="agentforce-chat__agent-empty slds-notify slds-notify_alert"
+          >
             <span class="slds-assistive-text">Warning</span>
             <lightning-icon
               icon-name="utility:warning"
