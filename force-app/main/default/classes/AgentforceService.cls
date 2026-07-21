@@ -65,6 +65,8 @@ public with sharing class AgentforceService {
    */
   public class AgentDefinitionOption {
     @AuraEnabled
+    public String agentId;
+    @AuraEnabled
     public String agentApiName;
     @AuraEnabled
     public String label;
@@ -216,6 +218,7 @@ public with sharing class AgentforceService {
     List<AgentDefinitionOption> options = new List<AgentDefinitionOption>();
     for (BotDefinition definition : definitions) {
       AgentDefinitionOption option = new AgentDefinitionOption();
+      option.agentId = (String) definition.Id;
       option.agentApiName = definition.DeveloperName;
       option.label = String.isBlank(definition.MasterLabel)
         ? definition.DeveloperName

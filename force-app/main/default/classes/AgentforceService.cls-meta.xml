@@ -1,7 +1,6 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version="1.0" encoding="UTF-8"?>
 <ApexClass xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>67.0</apiVersion>
-    <description
-  >Backend service supporting Agentforce chat interactions and orchestration.</description>
     <status>Active</status>
+    
 </ApexClass>

@@ -111,14 +111,6 @@
   font-size: 0.875rem;
 }
 
-/* Modal Prompt Text */
-.prompt-text {
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  line-height: 1.6;
-  color: #3e3e3c;
-}
-
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .skill-card-header {

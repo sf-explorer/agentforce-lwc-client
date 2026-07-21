@@ -1,0 +1,76 @@
+<template>
+  <section
+    role="dialog"
+    tabindex="-1"
+    aria-labelledby="modal-heading"
+    aria-modal="true"
+    class="slds-modal slds-fade-in-open"
+  >
+    <div class="slds-modal__container">
+      <button
+        class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+        title="Close"
+        onclick={handleClose}
+      >
+        <lightning-icon
+          icon-name="utility:close"
+          size="small"
+          alternative-text="Close"
+        >
+        </lightning-icon>
+        <span class="slds-assistive-text">Close</span>
+      </button>
+      <div class="slds-modal__header">
+        <h2 id="modal-heading" class="slds-text-heading_medium slds-hyphenate">
+          {modalHeader}
+        </h2>
+      </div>
+      <div class="slds-modal__content slds-p-around_medium" id="modal-content">
+        <article
+          class="slds-box slds-box_small slds-theme_success slds-m-bottom_medium"
+        >
+          <h3 class="slds-text-heading_small slds-m-bottom_small">
+            <lightning-icon
+              icon-name="utility:success"
+              size="xx-small"
+              class="slds-m-right_xx-small"
+            >
+            </lightning-icon>
+            Expected Result
+          </h3>
+          <p class="slds-text-body_regular">{modalExpectedResult}</p>
+        </article>
+        <article class="slds-box slds-box_small">
+          <h3 class="slds-text-heading_small slds-m-bottom_small">
+            <lightning-icon
+              icon-name="utility:description"
+              size="xx-small"
+              class="slds-m-right_xx-small"
+            >
+            </lightning-icon>
+            Agent Prompt
+          </h3>
+          <p class="slds-text-body_small prompt-text">{modalContent}</p>
+        </article>
+      </div>
+      <div class="slds-modal__footer">
+        <lightning-button
+          variant="neutral"
+          label="Cancel"
+          onclick={handleClose}
+        >
+        </lightning-button>
+        <lightning-button
+          variant="brand"
+          label="Launch Co-worker"
+          icon-name="utility:forward"
+          icon-position="left"
+          onclick={handleLaunchCoworker}
+          class="slds-m-left_small"
+        >
+        </lightning-button>
+      </div>
+    </div>
+  </section>
+  <div class="slds-backdrop slds-backdrop_open" onclick={handleClose}></div>
+</template>

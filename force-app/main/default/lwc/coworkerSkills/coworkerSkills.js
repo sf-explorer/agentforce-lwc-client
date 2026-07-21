@@ -4,6 +4,20 @@ import { ShowToastEvent } from "lightning/platformShowToastEvent";
 import getSkills from "@salesforce/apex/CoworkerSkillsController.getSkills";
 
 export default class CoworkerSkills extends NavigationMixin(LightningElement) {
+  launchAgent(content) {
+    const encodedContent = encodeURIComponent(content || "");
+    const timestamp = Date.now();
+    const baseUrl = window.location.origin;
+    const agentSearchUrl = `${baseUrl}/lightning/search/agent?c__term=${encodedContent}&c__ts=${timestamp}`;
+
+    this[NavigationMixin.Navigate]({
+      type: "standard__webPage",
+      attributes: {
+        url: agentSearchUrl
+      }
+    });
+  }
+
   skills = [];
   groupedSkills = {};
   error;
@@ -20,12 +34,6 @@ export default class CoworkerSkills extends NavigationMixin(LightningElement) {
   generatedContent = "";
   agents = "";
   editingSkillId = null;
-
-  // Merge variables handling
-  showMergeVariablesModal = false;
-  mergeVariables = [];
-  mergeVariableValues = {};
-  pendingSkillContent = "";
 
   @wire(getSkills)
   wiredSkills({ error, data }) {
@@ -77,61 +85,6 @@ export default class CoworkerSkills extends NavigationMixin(LightningElement) {
     }));
   }
 
-  handleSkillClick(event) {
-    const skillContent = event.currentTarget.dataset.content;
-    console.log("Skill content:", skillContent);
-
-    // Check for merge variables in the format {{string:Variable Name}}
-    const variables = this.extractMergeVariables(skillContent);
-    console.log("Found variables:", variables);
-
-    if (variables.length > 0) {
-      // Show modal to collect variable values
-      this.mergeVariables = variables;
-      this.mergeVariableValues = {};
-      this.pendingSkillContent = skillContent;
-      this.showMergeVariablesModal = true;
-    } else {
-      // No variables, launch directly
-      this.launchAgent(skillContent);
-    }
-  }
-
-  extractMergeVariables(content) {
-    const regex = /\{\{string:([^}]+)\}\}/g;
-    const variables = [];
-    const seen = new Set();
-    let match;
-
-    while ((match = regex.exec(content)) !== null) {
-      const varName = match[1].trim();
-      if (!seen.has(varName)) {
-        variables.push({
-          name: varName,
-          placeholder: match[0], // Full {{string:...}} for replacement
-          value: ""
-        });
-        seen.add(varName);
-      }
-    }
-
-    return variables;
-  }
-
-  launchAgent(content) {
-    const encodedContent = encodeURIComponent(content);
-    const timestamp = Date.now();
-    const baseUrl = window.location.origin;
-    const agentSearchUrl = `${baseUrl}/lightning/search/agent?c__term=${encodedContent}&c__ts=${timestamp}`;
-
-    this[NavigationMixin.Navigate]({
-      type: "standard__webPage",
-      attributes: {
-        url: agentSearchUrl
-      }
-    });
-  }
-
   handleInfoClick(event) {
     event.stopPropagation();
     const skillId = event.currentTarget.dataset.id;
@@ -144,52 +97,19 @@ export default class CoworkerSkills extends NavigationMixin(LightningElement) {
     this.selectedSkill = null;
   }
 
-  handleModalAction() {
-    if (this.selectedSkill) {
-      const skillContent = this.selectedSkill.Content__c;
-      const variables = this.extractMergeVariables(skillContent);
-
-      if (variables.length > 0) {
-        this.mergeVariables = variables;
-        this.mergeVariableValues = {};
-        this.pendingSkillContent = skillContent;
-        this.showMergeVariablesModal = true;
-        this.closeModal();
-      } else {
-        this.launchAgent(skillContent);
-        this.closeModal();
-      }
+  handleModalAction(event) {
+    const mode = event.detail?.mode || "coworker";
+    if (mode === "coworker") {
+      const content = event.detail?.content || this.selectedSkill?.Content__c || "";
+      this.launchAgent(content);
     }
+    this.closeModal();
   }
 
-  handleMergeVariableChange(event) {
-    const variableName = event.target.dataset.variable;
-    this.mergeVariableValues[variableName] = event.target.value;
-  }
-
-  handleLaunchWithVariables() {
-    let finalContent = this.pendingSkillContent;
-
-    this.mergeVariables.forEach((variable) => {
-      const value = this.mergeVariableValues[variable.name] || "";
-      finalContent = finalContent.replace(variable.placeholder, value);
-    });
-
-    this.closeMergeVariablesModal();
-    this.launchAgent(finalContent);
-  }
-
-  closeMergeVariablesModal() {
-    this.showMergeVariablesModal = false;
-    this.mergeVariables = [];
-    this.mergeVariableValues = {};
-    this.pendingSkillContent = "";
-  }
-
-  get allVariablesFilled() {
-    return this.mergeVariables.every((variable) =>
-      this.mergeVariableValues[variable.name]?.trim()
-    );
+  handleModalError(event) {
+    const message =
+      event.detail?.message || "Unable to launch Agentforce from this skill.";
+    this.showToast("Agent Launch Failed", message, "error");
   }
 
   get hasSkills() {
@@ -198,24 +118,6 @@ export default class CoworkerSkills extends NavigationMixin(LightningElement) {
 
   get categories() {
     return this.groupedSkills;
-  }
-
-  get modalHeader() {
-    return this.selectedSkill ? this.selectedSkill.MasterLabel : "";
-  }
-
-  get modalExpectedResult() {
-    return (
-      this.selectedSkill?.Expected_Result__c || "No expected result specified."
-    );
-  }
-
-  get modalContent() {
-    return this.selectedSkill?.Content__c || "";
-  }
-
-  get modalAgents() {
-    return this.selectedSkill?.Agents__c || "";
   }
 
   get categoryOptions() {
