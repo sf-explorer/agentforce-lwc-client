@@ -4,9 +4,7 @@ This repository contains skill prompts as practical examples.
 Use them as starting points, not final one-size-fits-all templates.
 
 ## What makes a good prompt
-
 A good prompt is:
-
 - **Clear:** states the exact objective and scope.
 - **Actionable:** gives ordered steps that remove ambiguity.
 - **Constrained:** includes hard rules (what to do and what not to do).
@@ -15,9 +13,7 @@ A good prompt is:
 - **Verifiable:** makes success easy to check.
 
 ## Recommended prompt structure
-
 Use this structure for reliable execution:
-
 1. **Objective** - one sentence describing the desired outcome.
 2. **Scope** - records, date range, audience, or system boundaries.
 3. **Instructions** - numbered steps in execution order.
@@ -26,7 +22,6 @@ Use this structure for reliable execution:
 6. **Expected result** - concise success criteria.
 
 ## Example pattern
-
 ```text
 Objective: [What should be achieved]
 Scope: [Which records/time range/systems are in scope]
@@ -49,6 +44,5 @@ Expected result:
 ```
 
 ## Important note about these files
-
-The prompts under `/skills` are examples generated from your `skills.json`.  
-They are intentionally explicit to promote consistent results and easier review.
+The skills under `/skills` are generated from your `skills.json`.  
+Each generated skill follows Cursor skill format: `<skill-folder>/SKILL.md`.

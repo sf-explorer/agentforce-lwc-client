@@ -1,0 +1,26 @@
+---
+name: urgent-claims-processing
+description: "Urgent claims are analyzed with clear expert recommendations and action plans, and a synthesis email is prepared for approval before sending."
+disable-model-invocation: true
+---
+
+# Urgent Claims Processing
+
+## Instructions
+
+Objective: Triage and coordinate urgent claims reported in the last 24 hours.
+
+Scope: Claims with high priority only.
+
+Instructions:
+1) Retrieve urgent claims from the last 24 hours.
+2) For each claim, review status and submitted documents.
+3) Determine whether an expert appointment is required and justify the decision.
+4) Produce a short case summary with next recommended actions.
+5) Send an internal synthesis email after user approval (analysis does not require approval).
+
+Output format:
+- Urgent claims list
+- Expert required: yes/no + reason
+- Recommended next actions
+- Pending approval for synthesis email

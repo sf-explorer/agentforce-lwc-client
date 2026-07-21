@@ -33,6 +33,8 @@ function createComponent(props = {}) {
 describe("c-agentforce-chat", () => {
   beforeEach(() => {
     getCoworkerSkills.mockResolvedValue([]);
+    window.sessionStorage.clear();
+    window.localStorage.clear();
   });
 
   afterEach(() => {
@@ -40,6 +42,8 @@ describe("c-agentforce-chat", () => {
       document.body.removeChild(document.body.firstChild);
     }
     jest.clearAllMocks();
+    window.sessionStorage.clear();
+    window.localStorage.clear();
   });
 
   it("sends a message and renders assistant response", async () => {

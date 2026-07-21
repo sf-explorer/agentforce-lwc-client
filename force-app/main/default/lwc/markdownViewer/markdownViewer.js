@@ -358,13 +358,14 @@ export default class MarkdownViewer extends NavigationMixin(LightningElement) {
       label,
       recordInfo.recordId
     );
-    const objectLabel = recordInfo.objectApiName
-      ? this.formatObjectApiName(recordInfo.objectApiName)
-      : "Record";
+    const objectEmoji = this.computeObjectEmoji(recordInfo.objectApiName);
+    const objectEmojiHtml = objectEmoji
+      ? `<span class="markdown-viewer__record-link-object" aria-hidden="true">${objectEmoji}</span>`
+      : "";
 
     return [
       `<a class="markdown-viewer__record-link" href="${safeHref}">`,
-      `<span class="markdown-viewer__record-link-object">${objectLabel}</span>`,
+      objectEmojiHtml,
       `<span class="markdown-viewer__record-link-label">${displayLabel}</span>`,
       "</a>"
     ].join("");
@@ -429,8 +430,21 @@ export default class MarkdownViewer extends NavigationMixin(LightningElement) {
     return normalizedLabel;
   }
 
-  formatObjectApiName(objectApiName) {
-    return objectApiName.replace(/__c$/i, "").replaceAll("_", " ");
+  computeObjectEmoji(objectApiName) {
+    const normalized = (objectApiName || "")
+      .replace(/__c$/i, "")
+      .replaceAll("_", "")
+      .toLowerCase();
+    const emojiByObject = {
+      account: "🏢",
+      contact: "👤",
+      opportunity: "💼",
+      case: "🎫",
+      lead: "✨",
+      task: "✅",
+      event: "📅"
+    };
+    return emojiByObject[normalized] || "";
   }
 
   escapeHtml(value) {

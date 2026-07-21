@@ -118,14 +118,9 @@
 .markdown-viewer__content .markdown-viewer__record-link-object {
   display: inline-flex;
   align-items: center;
-  border: 1px solid var(--slds-g-color-border-base-1, #d8dde6);
-  border-radius: 999px;
-  background: var(--slds-g-color-neutral-base-95, #f3f3f3);
-  color: var(--slds-g-color-neutral-base-50, #6b6d70);
-  font-size: 0.72rem;
-  font-weight: 700;
+  justify-content: center;
   line-height: 1;
-  padding: 0.18rem 0.45rem;
+  font-size: 0.95rem;
 }
 
 .markdown-viewer__content .markdown-viewer__record-link-label {
@@ -136,15 +131,16 @@
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 0.75rem;
-  display: block;
-  overflow-x: auto;
+  table-layout: auto;
 }
 
 .markdown-viewer__content :where(th, td) {
   border: 1px solid var(--slds-g-color-border-base-1, #d8dde6);
   padding: 0.5rem;
   text-align: left;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .markdown-viewer__content th {

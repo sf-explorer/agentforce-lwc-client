@@ -1069,30 +1069,15 @@ export default class AgentforceChat extends LightningElement {
     }
 
     const stored = this.readStoredHistory(this.activeConversationId);
-    if (!stored || !Array.isArray(stored) || stored.length === 0) {
+    const normalized = this.normalizeStoredMessages(stored);
+    if (normalized.length === 0) {
       this.messages = [];
+      this.hasInteracted = false;
       this.restoreConversationSession();
       return;
     }
-
-    const normalized = stored
-      .filter((message) => message?.role && message?.content)
-      .map((message) => ({
-        id: message.id || this.generateId(message.role),
-        role: message.role,
-        content: message.content,
-        timestamp: message.timestamp || new Date().toISOString(),
-        requestId: message.requestId || null,
-        clientRequestId: message.clientRequestId || null,
-        citations: Array.isArray(message.citations) ? message.citations : [],
-        errorCode: message.errorCode || null,
-        retryable: Boolean(message.retryable)
-      }))
-      .slice(-this.maxHistory);
-
-    if (normalized.length > 0) {
-      this.messages = normalized;
-    }
+    this.messages = normalized;
+    this.hasInteracted = this.messages.some((message) => message.role === "user");
     this.restoreConversationSession();
   }
 
@@ -1118,8 +1103,8 @@ export default class AgentforceChat extends LightningElement {
     }
     this.activeConversationId = conversationId;
     this.persistActiveConversationId(conversationId);
-    const stored = this.readStoredHistory(conversationId) || [];
-    this.messages = stored;
+    const stored = this.readStoredHistory(conversationId);
+    this.messages = this.normalizeStoredMessages(stored);
     this.hasInteracted = this.messages.some(
       (message) => message.role === "user"
     );
@@ -1190,21 +1175,23 @@ export default class AgentforceChat extends LightningElement {
   }
 
   persistSessionId(sessionId) {
-    if (!this.isConnected || !window?.sessionStorage) {
+    const storage = this.getStorage();
+    if (!this.isConnected || !storage) {
       return;
     }
     if (sessionId) {
-      window.sessionStorage.setItem(this.storageKey(), sessionId);
+      storage.setItem(this.storageKey(), sessionId);
     } else {
-      window.sessionStorage.removeItem(this.storageKey());
+      storage.removeItem(this.storageKey());
     }
   }
 
   readStoredSessionId() {
-    if (!window?.sessionStorage) {
+    const storage = this.getStorage();
+    if (!storage) {
       return null;
     }
-    return window.sessionStorage.getItem(this.storageKey());
+    return storage.getItem(this.storageKey());
   }
 
   historyStorageKey() {
@@ -1226,39 +1213,34 @@ export default class AgentforceChat extends LightningElement {
   }
 
   persistSelectedAgent(agentApiName) {
-    if (!window?.sessionStorage) {
+    const storage = this.getStorage();
+    if (!storage) {
       return;
     }
     if (agentApiName) {
-      window.sessionStorage.setItem(
-        this.selectedAgentStorageKey(),
-        agentApiName
-      );
+      storage.setItem(this.selectedAgentStorageKey(), agentApiName);
     } else {
-      window.sessionStorage.removeItem(this.selectedAgentStorageKey());
+      storage.removeItem(this.selectedAgentStorageKey());
     }
   }
 
   readStoredSelectedAgent() {
-    if (!window?.sessionStorage) {
+    const storage = this.getStorage();
+    if (!storage) {
       return "";
     }
-    return (
-      window.sessionStorage.getItem(this.selectedAgentStorageKey()) || ""
-    ).trim();
+    return (storage.getItem(this.selectedAgentStorageKey()) || "").trim();
   }
 
   persistActiveHistory() {
-    if (!window?.sessionStorage) {
+    const storage = this.getStorage();
+    if (!storage) {
       return;
     }
     if (!this.activeConversationId) {
       return;
     }
-    window.sessionStorage.setItem(
-      this.historyStorageKey(),
-      JSON.stringify(this.messages)
-    );
+    storage.setItem(this.historyStorageKey(), JSON.stringify(this.messages));
     const firstUserMessage = this.messages.find(
       (message) => message.role === "user"
     );
@@ -1277,13 +1259,14 @@ export default class AgentforceChat extends LightningElement {
   }
 
   readStoredHistory(conversationId = this.activeConversationId) {
-    if (!window?.sessionStorage) {
+    const storage = this.getStorage();
+    if (!storage) {
       return null;
     }
     if (!conversationId) {
       return null;
     }
-    const raw = window.sessionStorage.getItem(
+    const raw = storage.getItem(
       `${HISTORY_STORAGE_PREFIX}:${this.resolvedAgentApiName || "default"}:${conversationId}`
     );
     if (!raw) {
@@ -1297,28 +1280,28 @@ export default class AgentforceChat extends LightningElement {
   }
 
   deleteStoredHistory(conversationId) {
-    if (!window?.sessionStorage || !conversationId) {
+    const storage = this.getStorage();
+    if (!storage || !conversationId) {
       return;
     }
     const key = `${HISTORY_STORAGE_PREFIX}:${this.resolvedAgentApiName || "default"}:${conversationId}`;
-    window.sessionStorage.removeItem(key);
+    storage.removeItem(key);
   }
 
   persistConversationIndex() {
-    if (!window?.sessionStorage) {
+    const storage = this.getStorage();
+    if (!storage) {
       return;
     }
-    window.sessionStorage.setItem(
-      this.historyIndexStorageKey(),
-      JSON.stringify(this.conversations)
-    );
+    storage.setItem(this.historyIndexStorageKey(), JSON.stringify(this.conversations));
   }
 
   readConversationIndex() {
-    if (!window?.sessionStorage) {
+    const storage = this.getStorage();
+    if (!storage) {
       return [];
     }
-    const raw = window.sessionStorage.getItem(this.historyIndexStorageKey());
+    const raw = storage.getItem(this.historyIndexStorageKey());
     if (!raw) {
       return [];
     }
@@ -1331,20 +1314,50 @@ export default class AgentforceChat extends LightningElement {
   }
 
   persistActiveConversationId(conversationId) {
-    if (!window?.sessionStorage || !conversationId) {
+    const storage = this.getStorage();
+    if (!storage || !conversationId) {
       return;
     }
-    window.sessionStorage.setItem(
-      this.activeConversationStorageKey(),
-      conversationId
-    );
+    storage.setItem(this.activeConversationStorageKey(), conversationId);
   }
 
   readActiveConversationId() {
-    if (!window?.sessionStorage) {
+    const storage = this.getStorage();
+    if (!storage) {
       return null;
     }
-    return window.sessionStorage.getItem(this.activeConversationStorageKey());
+    return storage.getItem(this.activeConversationStorageKey());
+  }
+
+  getStorage() {
+    if (!window) {
+      return null;
+    }
+    return window.localStorage || window.sessionStorage || null;
+  }
+
+  normalizeStoredMessages(messages) {
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return [];
+    }
+    return messages
+      .filter((message) => message?.role && message?.content)
+      .map((message) => ({
+        id: message.id || this.generateId(message.role),
+        role: message.role,
+        content: message.content,
+        timestamp: message.timestamp || new Date().toISOString(),
+        requestId: message.requestId || null,
+        clientRequestId: message.clientRequestId || null,
+        citations: Array.isArray(message.citations) ? message.citations : [],
+        errorCode: message.errorCode || null,
+        retryable: Boolean(message.retryable),
+        resolvedContent: message.resolvedContent || null,
+        usedSkillLabels: Array.isArray(message.usedSkillLabels)
+          ? message.usedSkillLabels
+          : []
+      }))
+      .slice(-this.maxHistory);
   }
 
   appendMessage(role, content, extra = {}) {

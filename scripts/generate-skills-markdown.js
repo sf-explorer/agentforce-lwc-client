@@ -32,6 +32,25 @@ function writeFile(filePath, content) {
   fs.writeFileSync(filePath, content, "utf8");
 }
 
+function deleteIfExists(filePath) {
+  if (fs.existsSync(filePath)) {
+    fs.rmSync(filePath, { recursive: true, force: true });
+  }
+}
+
+function escapeYaml(value) {
+  return String(value || "").replace(/"/g, '\\"');
+}
+
+function getExpectedResult(skill) {
+  return (
+    skill["Expected_ Result"] ||
+    skill.Expected_Result ||
+    skill.Expected_Result__c ||
+    "_No expected result provided._"
+  );
+}
+
 function loadSkills(filePath) {
   if (!fs.existsSync(filePath)) {
     throw new Error(`Input file not found: ${filePath}`);
@@ -46,30 +65,29 @@ function loadSkills(filePath) {
 
 function buildSkillMarkdown(skill) {
   const label = skill.Label || "Untitled Skill";
-  const developerName = skill["Developer Name"] || "unknown_skill";
   const category = skill.Category || "Uncategorized";
-  const updatedAt = skill["System Modstamp"] || "Unknown";
   const content = skill.Content || "_No prompt content provided._";
-  const expectedResult =
-    skill["Expected_ Result"] || "_No expected result provided._";
+  const expectedResult = getExpectedResult(skill);
+  const skillName =
+    slugify(skill["Developer Name"] || skill.Label || "unknown-skill").slice(
+      0,
+      64
+    ) || "unknown-skill";
+  const description =
+    expectedResult ||
+    `Skill for ${label}. Use when the user asks for ${label.toLowerCase()}.`;
 
   return `---
-title: "${label.replace(/"/g, '\\"')}"
-developer_name: "${developerName.replace(/"/g, '\\"')}"
-category: "${category.replace(/"/g, '\\"')}"
-last_updated: "${updatedAt.replace(/"/g, '\\"')}"
+name: ${skillName}
+description: "${escapeYaml(description.replace(/\r?\n/g, " ").trim())}"
+disable-model-invocation: true
 ---
 
 # ${label}
 
-## Prompt
+## Instructions
+
 ${content}
-
-## Expected Result
-${expectedResult}
-
-## Note
-This skill prompt is an example. Adapt wording, guardrails, and output schema to your context before production use.
 `;
 }
 
@@ -120,8 +138,8 @@ Expected result:
 \`\`\`
 
 ## Important note about these files
-The prompts under \`/skills\` are examples generated from your \`skills.json\`.  
-They are intentionally explicit to promote consistent results and easier review.
+The skills under \`/skills\` are generated from your \`skills.json\`.  
+Each generated skill follows Cursor skill format: \`<skill-folder>/SKILL.md\`.
 `;
 }
 
@@ -162,8 +180,13 @@ function main() {
     const categoryDir = path.join(outputRoot, categorySlug);
     ensureDir(categoryDir);
 
-    const skillFileName = `${skillSlug}.md`;
-    const skillFilePath = path.join(categoryDir, skillFileName);
+    const legacySkillFilePath = path.join(categoryDir, `${skillSlug}.md`);
+    deleteIfExists(legacySkillFilePath);
+
+    const skillDir = path.join(categoryDir, skillSlug);
+    ensureDir(skillDir);
+    const skillFileName = "SKILL.md";
+    const skillFilePath = path.join(skillDir, skillFileName);
     writeFile(skillFilePath, buildSkillMarkdown(skill));
 
     if (!indexData[category]) {
@@ -171,10 +194,8 @@ function main() {
     }
     indexData[category].push({
       label: skill.Label || titleFromSlug(skillSlug),
-      relativePath: `./${categorySlug}/${skillFileName}`,
-      expectedResult: (
-        skill["Expected_ Result"] || "No expected result provided."
-      )
+      relativePath: `./${categorySlug}/${skillSlug}/${skillFileName}`,
+      expectedResult: (getExpectedResult(skill) || "No expected result provided.")
         .replace(/\r?\n/g, " ")
         .replace(/\|/g, "\\|")
         .trim()
@@ -197,7 +218,7 @@ function main() {
   );
   const categoryCount = Object.keys(indexData).length;
   console.log(
-    `Generated ${fileCount} skill markdown files in ${categoryCount} categories.`
+    `Generated ${fileCount} skill files in ${categoryCount} categories.`
   );
   console.log(`Created: ${path.join(outputRoot, "index.md")}`);
   console.log(`Created: ${path.join(outputRoot, "prompting-readme.md")}`);
