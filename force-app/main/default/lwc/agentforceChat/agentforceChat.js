@@ -1308,6 +1308,7 @@ export default class AgentforceChat extends LightningElement {
       updatedAt: new Date().toISOString(),
       sessionId: null
     });
+    this.initializeWelcomeMessage();
   }
 
   openConversation(conversationId) {
