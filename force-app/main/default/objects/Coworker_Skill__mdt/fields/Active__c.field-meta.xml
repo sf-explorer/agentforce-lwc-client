@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Active__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>When checked, the skill is active and available for use. Uncheck to deactivate it without deleting the record.</description>
+    <fieldManageability>DeveloperControlled</fieldManageability>
+    <inlineHelpText>Check to make this skill available for use. Uncheck to deactivate it.</inlineHelpText>
+    <label>Active</label>
+    <type>Checkbox</type>
+</CustomField>

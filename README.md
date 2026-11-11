@@ -94,6 +94,7 @@ The current component implementation supports:
 - **Skills custom metadata integration**
   - Skills loaded from `Coworker_Skill__mdt` using `CoworkerSkillsController.getSkills()`.
   - Uses `MasterLabel` as mention label and `Content__c` as resolved prompt content.
+  - Only skills with `Active__c` checked are returned, so skills can be deactivated and reactivated without deleting records.
   - Supports multi-word skill labels and `@` autocomplete in the composer.
 
 - **Rendering**
@@ -178,6 +179,7 @@ Minimum required fields per record:
 
 - `MasterLabel` (used as the `@label` mention text)
 - `Content__c` (resolved text inserted into the prompt sent to the agent)
+- `Active__c` (checkbox; only active skills are loaded. Uncheck it to deactivate a skill without deleting it, and check it once the skill is ready to be used)
 
 Optional fields (not required by resolution logic, but may be useful operationally):
 

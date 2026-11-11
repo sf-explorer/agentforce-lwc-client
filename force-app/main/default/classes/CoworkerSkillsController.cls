@@ -11,6 +11,7 @@ public with sharing class CoworkerSkillsController {
         Expected_Result__c,
         Agents__c
       FROM Coworker_Skill__mdt
+      WHERE Active__c = true
       ORDER BY Category__c, MasterLabel
     ];
   }
