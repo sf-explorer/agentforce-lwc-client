@@ -33,6 +33,7 @@ export default class AgentforceChat extends LightningElement {
   @api title = "Support Assistant";
   @api placeholder = "Type your message...";
   @api welcomeMessage = "How can I help?";
+  @api initialMessage = "";
   @api suggestions = [];
   @api samplePrompts = "";
   @api skillsJson = "";
@@ -74,6 +75,7 @@ export default class AgentforceChat extends LightningElement {
   _agentApiName = "";
   selectedAgentApiName = "";
   _seedApplied = false;
+  _initialMessageHandled = false;
 
   @api
   get agentApiName() {
@@ -89,12 +91,13 @@ export default class AgentforceChat extends LightningElement {
 
   connectedCallback() {
     this.isConnected = true;
-    this.loadAvailableAgents();
+    const agentsReady = this.loadAvailableAgents();
     this.initializeSession();
     this.initializeHistory();
     this.initializeWelcomeMessage();
-    this.loadSkills();
+    const skillsReady = this.loadSkills();
     this.applySeededMessages();
+    this.applyInitialMessage(agentsReady, skillsReady);
   }
 
   renderedCallback() {
@@ -485,6 +488,28 @@ export default class AgentforceChat extends LightningElement {
     } finally {
       this.isLoadingAgentOptions = false;
     }
+  }
+
+  async applyInitialMessage(agentsReady, skillsReady) {
+    const text = (this.initialMessage || "").trim();
+    if (!text || this._initialMessageHandled) {
+      return;
+    }
+    this._initialMessageHandled = true;
+
+    // Agent selection reloads that agent's history, and skills must be loaded
+    // so @mentions resolve. Both loaders catch their own errors.
+    await Promise.all([agentsReady, skillsReady]);
+
+    // Decide only after the final conversation is known.
+    const hasUserMessage = this.messages.some((msg) => msg.role === "user");
+    const hasSeed =
+      this._seedApplied ||
+      (Array.isArray(this.seededMessages) && this.seededMessages.length > 0);
+    if (hasUserMessage || hasSeed || this.disabled || !this.hasSelectedAgent) {
+      return;
+    }
+    this.sendMessage(text, { focusInput: false });
   }
 
   get commandQuery() {

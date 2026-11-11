@@ -1,10 +1,19 @@
 import { createElement } from "lwc";
 import AgentforceChat from "c/agentforceChat";
 import sendAgentMessage from "@salesforce/apex/AgentforceService.sendMessage";
+import getConfiguredAgents from "@salesforce/apex/AgentforceService.getConfiguredAgents";
 import getCoworkerSkills from "@salesforce/apex/CoworkerSkillsController.getSkills";
 
 jest.mock(
   "@salesforce/apex/AgentforceService.sendMessage",
+  () => ({
+    default: jest.fn()
+  }),
+  { virtual: true }
+);
+
+jest.mock(
+  "@salesforce/apex/AgentforceService.getConfiguredAgents",
   () => ({
     default: jest.fn()
   }),
@@ -20,6 +29,9 @@ jest.mock(
 );
 
 const flushPromises = () => Promise.resolve();
+// The initial message goes through Promise.all and several awaits, so a single
+// microtask tick is not enough. A macrotask lets every pending promise settle.
+const flushAll = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 function createComponent(props = {}) {
   const element = createElement("c-agentforce-chat", {
@@ -33,6 +45,7 @@ function createComponent(props = {}) {
 describe("c-agentforce-chat", () => {
   beforeEach(() => {
     getCoworkerSkills.mockResolvedValue([]);
+    getConfiguredAgents.mockResolvedValue([]);
     window.sessionStorage.clear();
     window.localStorage.clear();
   });
@@ -740,6 +753,145 @@ describe("c-agentforce-chat", () => {
     expect(sendAgentMessage).toHaveBeenCalledTimes(2);
     expect(sendAgentMessage.mock.calls[1][0]).toMatchObject({
       message: "Help me prepare the next meeting."
+    });
+  });
+
+  describe("initialMessage", () => {
+    const okResponse = {
+      message: { id: "m-2", role: "assistant", content: "Hi" },
+      sessionId: "session-1",
+      requestId: "req-1",
+      citations: []
+    };
+
+    it("sends the trimmed initialMessage once for an empty conversation", async () => {
+      sendAgentMessage.mockResolvedValue(okResponse);
+
+      createComponent({
+        agentApiName: "Support_Agent",
+        initialMessage: "  Summarize this account  "
+      });
+      await flushAll();
+
+      expect(sendAgentMessage).toHaveBeenCalledTimes(1);
+      expect(sendAgentMessage.mock.calls[0][0]).toMatchObject({
+        agentApiName: "Support_Agent",
+        message: "Summarize this account"
+      });
+    });
+
+    it("resolves @skill mentions in the initialMessage", async () => {
+      getCoworkerSkills.mockResolvedValue([
+        {
+          MasterLabel: "pricing",
+          Content__c: "Use the premium pricing policy."
+        }
+      ]);
+      sendAgentMessage.mockResolvedValue(okResponse);
+
+      createComponent({
+        agentApiName: "Support_Agent",
+        initialMessage: "Please apply @pricing"
+      });
+      await flushAll();
+
+      expect(sendAgentMessage).toHaveBeenCalledTimes(1);
+      expect(sendAgentMessage.mock.calls[0][0]).toMatchObject({
+        message: "Please apply Use the premium pricing policy."
+      });
+    });
+
+    it("does not send when initialMessage is blank", async () => {
+      createComponent({
+        agentApiName: "Support_Agent",
+        initialMessage: "   "
+      });
+      await flushAll();
+
+      expect(sendAgentMessage).not.toHaveBeenCalled();
+    });
+
+    it("does not send when the stored conversation already has a user message", async () => {
+      window.localStorage.setItem(
+        "agentforce-chat-history:Support_Agent:index",
+        JSON.stringify([
+          {
+            id: "c1",
+            title: "Earlier",
+            updatedAt: "2020-01-01T00:00:00.000Z",
+            sessionId: null
+          }
+        ])
+      );
+      window.localStorage.setItem(
+        "agentforce-chat-history:Support_Agent:active",
+        "c1"
+      );
+      window.localStorage.setItem(
+        "agentforce-chat-history:Support_Agent:c1",
+        JSON.stringify([
+          { id: "u0", role: "user", content: "earlier question" }
+        ])
+      );
+
+      createComponent({
+        agentApiName: "Support_Agent",
+        initialMessage: "Summarize this account"
+      });
+      await flushAll();
+
+      expect(sendAgentMessage).not.toHaveBeenCalled();
+    });
+
+    it("does not send when seededMessages are provided", async () => {
+      createComponent({
+        agentApiName: "Support_Agent",
+        initialMessage: "Summarize this account",
+        seededMessages: [{ role: "assistant", content: "Seeded answer" }]
+      });
+      await flushAll();
+
+      expect(sendAgentMessage).not.toHaveBeenCalled();
+    });
+
+    it("does not send when the component is disabled", async () => {
+      createComponent({
+        agentApiName: "Support_Agent",
+        initialMessage: "Summarize this account",
+        disabled: true
+      });
+      await flushAll();
+
+      expect(sendAgentMessage).not.toHaveBeenCalled();
+    });
+
+    it("waits for the agent to be selected before sending", async () => {
+      getConfiguredAgents.mockResolvedValue([
+        { agentApiName: "Support_Agent", label: "Support", description: "" }
+      ]);
+      sendAgentMessage.mockResolvedValue(okResponse);
+
+      createComponent({ initialMessage: "Summarize this account" });
+      await flushAll();
+
+      expect(sendAgentMessage).toHaveBeenCalledTimes(1);
+      expect(sendAgentMessage.mock.calls[0][0]).toMatchObject({
+        agentApiName: "Support_Agent",
+        message: "Summarize this account"
+      });
+    });
+
+    it("skips silently when no agent can be selected", async () => {
+      getConfiguredAgents.mockResolvedValue([]);
+
+      const element = createComponent({ initialMessage: "Summarize" });
+      await flushAll();
+
+      expect(sendAgentMessage).not.toHaveBeenCalled();
+      expect(
+        element.shadowRoot.querySelectorAll('article[data-role="system"]')
+          .length
+      ).toBe(0);
     });
   });
 });

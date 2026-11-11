@@ -88,6 +88,7 @@ The current component implementation supports:
 - **Prompt and context support**
   - `suggestions` array input.
   - `samplePrompts` string input (newline/semicolon/pipe parsing).
+  - `initialMessage` string input, sent automatically as the first message of an empty conversation.
   - Record page context support via `recordId`.
   - `@skill` mentions resolved from custom metadata (`Coworker_Skill__mdt`) via `CoworkerSkillsController`.
 
@@ -151,6 +152,7 @@ The current component implementation supports:
 Common `c-agentforce-chat` properties used in recent updates:
 
 - `agentApiName` (optional preselection; can be chosen from configured agents at runtime)
+- `initialMessage` (optional text sent automatically as the first user message of an empty conversation; supports `@skill` mentions)
 - `markdownEnabled` (`true` to enable markdown rendering)
 - `markdownRenderer` (`custom` or `richText`)
 - `voiceInputEnabled` (`true` to show microphone capture)

@@ -33,6 +33,12 @@
         label="Welcome Message"
       />
             <property
+        name="initialMessage"
+        type="String"
+        label="Initial Message"
+        description="Optional text that will be passed automatically as the first user message."
+      />
+            <property
         name="samplePrompts"
         type="String"
         label="Sample Prompts"
